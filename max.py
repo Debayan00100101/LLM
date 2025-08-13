@@ -36,6 +36,7 @@ if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     
     # Display the user's message in the chat with the emoji.
+    # The avatar parameter is removed, so Streamlit will use the default user icon.
     with st.chat_message("user"):
         st.markdown(f"😀 **You**\n\n{prompt}")
 
