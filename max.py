@@ -9,7 +9,7 @@ st.title("Max")
 # WARNING: This is NOT a secure practice.
 # Replace "YOUR_API_KEY_HERE" with your actual key.
 try:
-    genai.configure(api_key="YOUR_API_KEY_HERE")
+    genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI")
     
     # Initialize the generative model
     model = genai.GenerativeModel("gemini-2.0-flash")
@@ -27,3 +27,4 @@ try:
 except Exception as e:
     # Catch any errors from the API call itself, including a bad key
     st.error(f"An error occurred: {e}")
+
