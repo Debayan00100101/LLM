@@ -17,16 +17,18 @@ except Exception as e:
     st.stop()
 
 # --- Initialize Chat History in Session State ---
-# This list will store messages in the format expected by the Gemini API.
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # --- Display Previous Messages ---
 for message in st.session_state.messages:
-    # Use the original role to display the message.
-    # The 'parts' key contains the content.
-    with st.chat_message(message["role"]):
-        st.markdown(message["parts"][0]["text"])
+    # Check if the message is a dictionary with a 'parts' key
+    if isinstance(message, dict) and "parts" in message and isinstance(message["parts"], list) and len(message["parts"]) > 0:
+        with st.chat_message(message["role"]):
+            st.markdown(message["parts"][0]["text"])
+    else:
+        # Handle cases where the message isn't in the expected format
+        st.error("Error: Malformed chat history.")
 
 # --- Handle New User Input ---
 if prompt := st.chat_input("What is up?"):
