@@ -6,7 +6,7 @@ st.set_page_config(page_title="Max-AI Agent by Debayan", page_icon="🧠")
 st.title("Max-AI Chat")
 
 # --- API Key Configuration ---
-# WARNING: Hardcoding your API key is not secure. Use st.secrets or environment variables in a real-world app.
+# WARNING: Hardcoding your API key is not secure.
 try:
     genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI")
     
@@ -18,45 +18,42 @@ except Exception as e:
     st.stop()
 
 # --- Initialize Chat History in Session State ---
-# This dictionary stores the messages to keep the conversation going.
-# 'messages' will hold a list of dictionaries with 'role' and 'content'.
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- Display Previous Messages ---
-# Loop through the messages in the session state and display them.
+# --- Display Previous Messages with Emojis ---
 for message in st.session_state.messages:
+    # Use the default chat message, but then add the emoji inside
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+        if message["role"] == "user":
+            st.markdown(f"😀 **You**\n\n{message['content']}")
+        else:
+            st.markdown(f"😎 **AI**\n\n{message['content']}")
 
 # --- Handle New User Input ---
-# Create a text input for the user to type their message.
 if prompt := st.chat_input("What is up?"):
     # Add the user's message to the chat history.
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # Display the user's message in the chat.
+    # Display the user's message in the chat with the emoji.
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(f"😀 **You**\n\n{prompt}")
 
     # --- Generate and Display AI Response ---
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
-                # The model now receives the full chat history to remember context.
-                # `stream=True` makes the response appear word by word.
+                # The model receives the full chat history to remember context.
                 response = model.generate_content(st.session_state.messages, stream=True)
                 
-                # Create a placeholder to stream the response into.
-                full_response = st.empty()
-                
-                # Read the response chunks and append them to the placeholder.
-                # This creates the "typewriter" effect.
                 ai_response = ""
+                full_response_placeholder = st.empty()
+                
+                # Stream the response chunk by chunk
                 for chunk in response:
                     if chunk.text:
                         ai_response += chunk.text
-                        full_response.markdown(ai_response)
+                        full_response_placeholder.markdown(f"😎 **AI**\n\n{ai_response}")
                         
                 # Add the final, full AI response to the chat history.
                 st.session_state.messages.append({"role": "assistant", "content": ai_response})
