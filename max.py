@@ -11,7 +11,7 @@ st.set_page_config(page_title="Max-AI Agent by Debayan", page_icon="🧠")
 st.title("Max")
 
 # Configure the Generative AI API with the API key from the environment variable
-api_key = os.getenv("AIzaSyCFdHMPJiR7hotEWC0tQqTR2cxl1qf6veE")
+api_key = os.getenv("AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI")
 if not api_key:
     st.error("API key not found. Please set the GOOGLE_API_KEY environment variable.")
     st.stop()
@@ -32,3 +32,4 @@ if query:
         st.info(f"{response.text}", icon="🧠")
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
