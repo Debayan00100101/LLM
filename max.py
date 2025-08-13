@@ -15,7 +15,7 @@ try:
 
 
     if query:
-        st.spinner("Thinking...", icon="🧠")
+        st.spinner("Thinking...")
 
         response = model.generate_content(query)
         st.info(f"{response.text}", icon="🧠")
@@ -23,4 +23,5 @@ try:
 except Exception as e:
 
     st.error(f"An error occurred: {e}")
+
 
