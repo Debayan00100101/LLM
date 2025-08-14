@@ -3,7 +3,7 @@ import google.generativeai as genai
 from PIL import Image
 import io
 import base64
-import speech_recognition as sr
+import speechrecognition as sr
 
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
@@ -120,3 +120,4 @@ if prompt:
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
         st.chat_message("assistant", avatar="😎").write(reply)
+
