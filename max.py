@@ -25,7 +25,7 @@ if len(st.session_state.messages) == 0:
             justify-content: center;
             align-items: center;
             height: 65vh;
-            font-size: 8rem;
+            font-size: 6rem;
             font-weight: bold;
             color: white;
             opacity: 0.5;
@@ -70,4 +70,5 @@ if prompt:
     # Save & display AI message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant", avatar="😎").write(reply)
+
 
