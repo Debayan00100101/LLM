@@ -4,9 +4,8 @@ import google.generativeai as genai
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
 st.title("Max 🧠")
-key = "AIzaSyALrcQnmp16z2h2ParAb6PXimCpN0HxX8Y".replace("6","8")
 # --- Configure Gemini API ---
-genai.configure(api_key=key)
+genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
 
 # --- Session State ---
@@ -47,7 +46,7 @@ for msg in st.session_state.messages:
 prompt = st.chat_input("Type here...")
 
 if prompt:
-    # Remove intro instantly
+    # Remove introduction instantly
     intro_placeholder.empty()
 
     # Add user message
@@ -70,3 +69,4 @@ if prompt:
     # Add AI message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant", avatar="😎").write(reply)
+
