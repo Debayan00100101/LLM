@@ -1,63 +1,50 @@
 import streamlit as st
 import google.generativeai as genai
-from PIL import Image
-import io
 
-# ---------- Page Config ----------
+# --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
-st.title("Max-AI 🧠")
+st.title("Max 🧠")
 
-# ---------- Configure Gemini ----------
+# --- Configure Gemini API ---
 genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI")
-model = genai.GenerativeModel("gemini-1.5-flash")
 
-# ---------- Session State ----------
+# Models
+text_model = genai.GenerativeModel("gemini-2.0-flash")
+
+# --- Session State for Memory ---
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Hello 👋, how can I assist you today?"}
+    ]
 
-# ---------- Show Chat History ----------
+# --- Display Chat History ---
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"], avatar=msg.get("avatar", None)):
-        st.markdown(msg["content"])
+    if msg["role"] == "user":
+        st.chat_message("user", avatar="😀").write(msg["content"])
+    else:
+        st.chat_message("assistant", avatar="😎").write(msg["content"])
 
-# ---------- File Upload ----------
-uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], label_visibility="collapsed")
+# --- Chat Input ---
+prompt = st.chat_input("Type here...")
 
-# ---------- Chat Input at Bottom ----------
-if prompt := st.chat_input("Type your message here..."):
+if prompt:
     # Add user message
-    st.session_state.messages.append({
-        "role": "user",
-        "content": prompt,
-        "avatar": "😀"
-    })
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.chat_message("user", avatar="😀").write(prompt)
 
-    # Prepare message parts
-    parts = [{"text": prompt}]
+    # Prepare conversation history for AI
+    history_text = "\n".join([
+        f"{m['role'].capitalize()}: {m['content']}"
+        for m in st.session_state.messages
+    ])
 
-    # If image uploaded, add it
-    if uploaded_file:
-        img = Image.open(uploaded_file)
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format="PNG")
-        img_bytes = img_bytes.getvalue()
-        parts.append({
-            "inline_data": {
-                "mime_type": "image/png",
-                "data": img_bytes
-            }
-        })
+    # Generate AI reply
+    with st.spinner("Thinking..."):
+        try:
+            reply = text_model.generate_content(history_text).text
+        except Exception as e:
+            reply = f"Error: {e}"
 
-    # Generate response
-    response = model.generate_content([{"role": "user", "parts": parts}])
-
-    # Add AI response
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": response.text,
-        "avatar": "😎"
-    })
-
-    # Show AI message immediately
-    with st.chat_message("assistant", avatar="😎"):
-        st.markdown(response.text)
+    # Add AI message
+    st.session_state.messages.append({"role": "assistant", "content": reply})
+    st.chat_message("assistant", avatar="😎").write(reply)
