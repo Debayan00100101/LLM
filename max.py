@@ -4,6 +4,7 @@ import google.generativeai as genai
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
 st.title("Max 🧠")
+
 # --- Configure Gemini API ---
 genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
@@ -15,7 +16,7 @@ if "messages" not in st.session_state:
 # --- Create placeholder for intro text ---
 intro_placeholder = st.empty()
 
-# --- Show "Max" if no messages ---
+# --- Show "Max" if no messages yet ---
 if len(st.session_state.messages) == 0:
     intro_placeholder.markdown(
         """
@@ -35,7 +36,7 @@ if len(st.session_state.messages) == 0:
         unsafe_allow_html=True
     )
 
-# --- Display Chat History ---
+# --- Display Saved Chat History ---
 for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.chat_message("user", avatar="😀").write(msg["content"])
@@ -46,10 +47,10 @@ for msg in st.session_state.messages:
 prompt = st.chat_input("Type here...")
 
 if prompt:
-    # Remove introduction instantly
+    # Remove intro instantly
     intro_placeholder.empty()
 
-    # Add user message
+    # Save & display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
 
@@ -66,7 +67,6 @@ if prompt:
         except Exception as e:
             reply = f"Error: {e}"
 
-    # Add AI message
+    # Save & display AI message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant", avatar="😎").write(reply)
-
