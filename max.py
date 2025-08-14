@@ -9,13 +9,14 @@ st.title("Max 🧠")
 genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
 
-# --- Session State ---
+# --- Session State Initialization ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    st.session_state.show_intro = True  # Flag to show "Max" intro
+if "show_intro" not in st.session_state:
+    st.session_state.show_intro = True  # show intro before chat starts
 
 # --- Show Intro Message Before Chat Starts ---
-if st.session_state.show_intro:
+if st.session_state.get("show_intro", True):
     st.chat_message("assistant", avatar="😎").write("Hello Debayan 👋, I’m Max. How can I help you today?")
 
 # --- Display Chat History ---
