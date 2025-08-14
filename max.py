@@ -12,12 +12,26 @@ text_model = genai.GenerativeModel("gemini-2.0-flash")
 # --- Session State ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "show_intro" not in st.session_state:
-    st.session_state.show_intro = True  # show intro before chat starts
 
-# --- Display Intro in Chat Area (Not Saved to History) ---
-if st.session_state.show_intro and not st.session_state.messages:
-    st.chat_message("assistant", avatar="😎").write("Max")
+# --- Empty State (Blue Circle Area) ---
+if not st.session_state.messages:
+    st.markdown(
+        """
+        <div style='
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60vh;
+            font-size: 4rem;
+            font-weight: bold;
+            color: #00BFFF;
+            opacity: 0.4;
+        '>
+            Max
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # --- Display Chat History ---
 for msg in st.session_state.messages:
@@ -30,9 +44,6 @@ for msg in st.session_state.messages:
 prompt = st.chat_input("Type here...")
 
 if prompt:
-    # Hide intro after first message
-    st.session_state.show_intro = False
-
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
