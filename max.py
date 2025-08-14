@@ -1,40 +1,68 @@
 import streamlit as st
 import google.generativeai as genai
+from PIL import Image
+import io
+import base64
 
-# --- Page Config ---
+# --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI Agent by Debayan", page_icon="🧠")
-st.title("Max - AI Agent")
+st.title("Max - AI Agent (Text + Image)")
 
 # --- Configure Gemini API ---
-genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI")
-model = genai.GenerativeModel("gemini-2.0-flash")
+genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI
+")
+
+# Models
+text_model = genai.GenerativeModel("gemini-2.0-flash")
+image_model = genai.GenerativeModel("gemini-1.5-flash")  # supports images
 
 # --- Session State for Memory ---
 if "messages" not in st.session_state:
-    st.session_state.messages = []  # list of {"role": "user"/"assistant", "content": str}
+    st.session_state.messages = []  # role: "user"/"assistant", content: str or {"image":...}
 
 # --- Display Chat History ---
 for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.chat_message("user", avatar="😀").write(msg["content"])
     else:
-        st.chat_message("assistant", avatar="😎").write(msg["content"])
+        with st.chat_message("assistant", avatar="😎"):
+            if isinstance(msg["content"], str):
+                st.write(msg["content"])
+            elif isinstance(msg["content"], dict) and "image" in msg["content"]:
+                st.image(msg["content"]["image"], caption="Generated Image")
 
 # --- Chat Input ---
-if prompt := st.chat_input("Type your message..."):
+if prompt := st.chat_input("Type a message or 'image: your prompt'..."):
     # Save and display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
 
-    # Get AI response
-    with st.spinner("Thinking..."):
-        try:
-            history_text = "\n".join([f"{m['role'].capitalize()}: {m['content']}" for m in st.session_state.messages])
-            response = model.generate_content(history_text)
-            reply = response.text
-        except Exception as e:
-            reply = f"Error: {e}"
+    # --- Image Generation Mode ---
+    if prompt.lower().startswith("image:"):
+        image_prompt = prompt[6:].strip()
+        with st.spinner("Generating image..."):
+            try:
+                img_response = image_model.generate_content(
+                    image_prompt,
+                    generation_config={"response_mime_type": "image/png"}
+                )
+                image_data = img_response.candidates[0].content.parts[0].inline_data.data
+                image_bytes = base64.b64decode(image_data)
+                img = Image.open(io.BytesIO(image_bytes))
+                st.session_state.messages.append({"role": "assistant", "content": {"image": img}})
+                st.chat_message("assistant", avatar="😎").image(img, caption="Generated Image")
+            except Exception as e:
+                st.session_state.messages.append({"role": "assistant", "content": f"Image error: {e}"})
+                st.chat_message("assistant", avatar="😎").write(f"Image error: {e}")
 
-    # Save and display AI reply
-    st.session_state.messages.append({"role": "assistant", "content": reply})
-    st.chat_message("assistant", avatar="😎").write(reply)
+    # --- Text Generation Mode ---
+    else:
+        with st.spinner("Thinking..."):
+            try:
+                history_text = "\n".join([f"{m['role'].capitalize()}: {m['content'] if isinstance(m['content'], str) else '[Image]'}"
+                                          for m in st.session_state.messages])
+                reply = text_model.generate_content(history_text).text
+            except Exception as e:
+                reply = f"Error: {e}"
+        st.session_state.messages.append({"role": "assistant", "content": reply})
+        st.chat_message("assistant", avatar="😎").write(reply)
