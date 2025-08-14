@@ -70,6 +70,7 @@ if prompt:
     # Save & display AI message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant", avatar="😎").write(reply)
-st.write("__Max can make mistakes, check important information See Cookie Preferences.__")
+    st.write("__Max can make mistakes, check important information See Cookie Preferences.__")
+
 
 
