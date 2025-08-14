@@ -1,4 +1,5 @@
-streamlit==
+streamlit
 google-generativeai
 streamlit-oauth==0.1.14
 Pillow
+
