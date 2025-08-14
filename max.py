@@ -16,15 +16,15 @@ if "messages" not in st.session_state:
 # --- Display Chat History ---
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.chat_message("user").write(msg["content"])
+        st.chat_message("user", avatar="😀").write(msg["content"])
     else:
-        st.chat_message("assistant").write(msg["content"])
+        st.chat_message("assistant", avatar="😎").write(msg["content"])
 
 # --- Chat Input ---
 if prompt := st.chat_input("Type your message..."):
     # Save and display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
+    st.chat_message("user", avatar="😀").write(prompt)
 
     # Get AI response
     with st.spinner("Thinking..."):
@@ -37,4 +37,4 @@ if prompt := st.chat_input("Type your message..."):
 
     # Save and display AI reply
     st.session_state.messages.append({"role": "assistant", "content": reply})
-    st.chat_message("assistant").write(reply)
+    st.chat_message("assistant", avatar="😎").write(reply)
