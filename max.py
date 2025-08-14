@@ -9,8 +9,7 @@ st.set_page_config(page_title="Max-AI Agent by Debayan", page_icon="🧠")
 st.title("Max - AI Agent (Text + Image)")
 
 # --- Configure Gemini API ---
-genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI
-")
+genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI")
 
 # Models
 text_model = genai.GenerativeModel("gemini-2.0-flash")
@@ -66,3 +65,4 @@ if prompt := st.chat_input("Type a message or 'image: your prompt'..."):
                 reply = f"Error: {e}"
         st.session_state.messages.append({"role": "assistant", "content": reply})
         st.chat_message("assistant", avatar="😎").write(reply)
+
