@@ -30,7 +30,7 @@ if len(st.session_state.messages) == 0:
             color: white;
             opacity: 0.5;
         '>
-            Max
+            Hello, World!
         </div>
         """,
         unsafe_allow_html=True
@@ -70,3 +70,4 @@ if prompt:
     # Save & display AI message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant", avatar="😎").write(reply)
+
