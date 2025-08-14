@@ -13,7 +13,7 @@ text_model = genai.GenerativeModel("gemini-2.0-flash")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- Empty State (Blue Circle Area) ---
+# --- Empty State (Centered "Max") ---
 if not st.session_state.messages:
     st.markdown(
         """
@@ -21,11 +21,11 @@ if not st.session_state.messages:
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 60vh;
-            font-size: 4rem;
+            height: 65vh;
+            font-size: 8rem;
             font-weight: bold;
-            color: #00BFFF;
-            opacity: 0.4;
+            color: white;
+            opacity: 0.5;
         '>
             Max
         </div>
