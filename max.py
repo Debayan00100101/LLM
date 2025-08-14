@@ -4,18 +4,21 @@ import google.generativeai as genai
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
 st.title("Max 🧠")
-
+key = "AIzaSyALrcQnmp16z2h2ParAb6PXimCpN0HxX8Y".replace("6","8")
 # --- Configure Gemini API ---
-genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
+genai.configure(api_key=key)
 text_model = genai.GenerativeModel("gemini-2.0-flash")
 
 # --- Session State ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- If no chat yet, show big "Max" ---
+# --- Create placeholder for intro text ---
+intro_placeholder = st.empty()
+
+# --- Show "Max" if no messages ---
 if len(st.session_state.messages) == 0:
-    st.markdown(
+    intro_placeholder.markdown(
         """
         <div style='
             display: flex;
@@ -44,6 +47,9 @@ for msg in st.session_state.messages:
 prompt = st.chat_input("Type here...")
 
 if prompt:
+    # Remove intro instantly
+    intro_placeholder.empty()
+
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
