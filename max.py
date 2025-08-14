@@ -3,7 +3,11 @@ import google.generativeai as genai
 from PIL import Image
 import io
 import base64
-import speechrecognition as sr
+from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode
+import av
+import tempfile
+import os
+import wave
 
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
@@ -21,6 +25,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Hello 👋, there how can I assist you today?"}
     ]
+if "voice_text" not in st.session_state:
+    st.session_state.voice_text = None
 
 # --- Display Chat History ---
 for msg in st.session_state.messages:
@@ -33,32 +39,15 @@ for msg in st.session_state.messages:
             elif isinstance(msg["content"], dict) and "image" in msg["content"]:
                 st.image(msg["content"]["image"], caption="Generated Image")
 
-# --- Extra Inputs ---
-col1, col2 = st.columns(2)
-with col1:
-    uploaded_file = st.file_uploader("Upload an image or file")
-with col2:
-    if st.button("🎤 Speak"):
-        recognizer = sr.Recognizer()
-        with sr.Microphone() as source:
-            st.info("Listening...")
-            audio = recognizer.listen(source)
-        try:
-            voice_text = recognizer.recognize_google(audio)
-            st.success(f"You said: {voice_text}")
-            prompt = voice_text
-        except Exception as e:
-            st.error(f"Voice error: {e}")
-            prompt = None
+# --- File/Image Upload ---
+uploaded_file = st.file_uploader("Upload an image or file")
 
-# If file uploaded, handle it
 if uploaded_file:
     try:
         if uploaded_file.type.startswith("image/"):
             img = Image.open(uploaded_file)
             st.session_state.messages.append({"role": "user", "content": "[Uploaded Image]"})
             st.chat_message("user", avatar="😀").image(img, caption="Uploaded Image")
-            # Optional: send to AI model
             img_bytes = io.BytesIO()
             img.save(img_bytes, format="PNG")
             img_bytes.seek(0)
@@ -79,12 +68,51 @@ if uploaded_file:
     except Exception as e:
         st.error(f"File error: {e}")
 
+# --- Browser Voice Input ---
+class AudioProcessor(AudioProcessorBase):
+    def __init__(self):
+        self.frames = []
+
+    def recv_audio(self, frame):
+        self.frames.append(frame.to_ndarray().tobytes())
+        return frame
+
+webrtc_ctx = webrtc_streamer(
+    key="speech",
+    mode=WebRtcMode.SENDONLY,
+    audio_processor_factory=AudioProcessor,
+    media_stream_constraints={"audio": True, "video": False},
+)
+
+if webrtc_ctx.audio_processor:
+    if st.button("Stop Recording & Process"):
+        temp_audio_path = tempfile.mktemp(suffix=".wav")
+        wf = wave.open(temp_audio_path, 'wb')
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(44100)
+        wf.writeframes(b''.join(webrtc_ctx.audio_processor.frames))
+        wf.close()
+
+        # Send audio to Gemini for transcription
+        with open(temp_audio_path, "rb") as f:
+            audio_data = f.read()
+        try:
+            transcribe_model = genai.GenerativeModel("gemini-1.5-flash")
+            result = transcribe_model.generate_content(
+                [genai.types.Part.from_bytes(audio_data, mime_type="audio/wav")]
+            )
+            st.session_state.voice_text = result.text
+            st.success(f"Voice input: {result.text}")
+        except Exception as e:
+            st.error(f"Transcription error: {e}")
+        os.remove(temp_audio_path)
+
 # --- Chat Input ---
-if not uploaded_file:
-    prompt = st.chat_input("Type Here...") if 'prompt' not in locals() else prompt
+prompt = st.session_state.voice_text if st.session_state.voice_text else st.chat_input("Type Here...")
 
 if prompt:
-    # Save and display user message
+    st.session_state.voice_text = None
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
 
@@ -120,4 +148,3 @@ if prompt:
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
         st.chat_message("assistant", avatar="😎").write(reply)
-
