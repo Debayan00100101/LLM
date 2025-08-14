@@ -17,7 +17,9 @@ image_model = genai.GenerativeModel("gemini-1.5-flash")  # supports images
 
 # --- Session State for Memory ---
 if "messages" not in st.session_state:
-    st.session_state.messages = []  # role: "user"/"assistant", content: str or {"image":...}
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Hello 👋, there how can I assist you today?"}
+    ]
 
 # --- Display Chat History ---
 for msg in st.session_state.messages:
@@ -58,11 +60,13 @@ if prompt := st.chat_input("Type Here..."):
     else:
         with st.spinner("Thinking..."):
             try:
-                history_text = "\n".join([f"{m['role'].capitalize()}: {m['content'] if isinstance(m['content'], str) else '[Image]'}"
-                                          for m in st.session_state.messages])
+                history_text = "\n".join([
+                    f"{m['role'].capitalize()}: {m['content'] if isinstance(m['content'], str) else '[Image]'}"
+                    for m in st.session_state.messages
+                ])
                 reply = text_model.generate_content(history_text).text
             except Exception as e:
                 reply = f"Error: {e}"
+
         st.session_state.messages.append({"role": "assistant", "content": reply})
         st.chat_message("assistant", avatar="😎").write(reply)
-
