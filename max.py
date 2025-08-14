@@ -3,7 +3,7 @@ import google.generativeai as genai
 from PIL import Image
 import io
 import base64
-import speech_recognition as sr
+import tempfile
 
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
@@ -33,66 +33,47 @@ for msg in st.session_state.messages:
             elif isinstance(msg["content"], dict) and "image" in msg["content"]:
                 st.image(msg["content"]["image"], caption="Generated Image")
 
-# --- File/Image Input ---
-uploaded_file = st.file_uploader("Upload a file or image", type=["png", "jpg", "jpeg", "txt", "pdf"])
-if uploaded_file is not None:
-    if uploaded_file.type.startswith("image/"):
-        img = Image.open(uploaded_file)
-        st.image(img, caption="Uploaded Image")
-        st.session_state.messages.append({"role": "user", "content": "[Uploaded an image]"})
-        with st.spinner("Thinking about the image..."):
-            try:
-                img_bytes = io.BytesIO()
-                img.save(img_bytes, format="PNG")
-                img_bytes.seek(0)
-                img_base64 = base64.b64encode(img_bytes.read()).decode("utf-8")
+# --- Sidebar for Inputs ---
+st.sidebar.header("Extra Inputs")
 
-                img_response = image_model.generate_content(
-                    ["Describe this image:", {"mime_type": "image/png", "data": img_base64}],
-                    generation_config={"response_mime_type": "text/plain"}
-                )
-                reply = img_response.text
-            except Exception as e:
-                reply = f"Image error: {e}"
+# File upload (PDF, TXT, Image, etc.)
+uploaded_file = st.sidebar.file_uploader("Upload a file (text, pdf, image)", type=["txt", "pdf", "png", "jpg", "jpeg"])
+uploaded_image = None
+file_text_content = ""
 
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant", avatar="😎").write(reply)
-
+if uploaded_file:
+    if uploaded_file.type.startswith("image"):
+        uploaded_image = Image.open(uploaded_file)
+        st.sidebar.image(uploaded_image, caption="Uploaded Image")
     else:
-        # Non-image file handling
-        file_text = uploaded_file.read().decode(errors="ignore")
-        st.session_state.messages.append({"role": "user", "content": f"[Uploaded file: {uploaded_file.name}]"})
-        with st.spinner("Reading file..."):
-            try:
-                reply = text_model.generate_content(f"Here is the file content:\n{file_text}").text
-            except Exception as e:
-                reply = f"File error: {e}"
+        file_text_content = uploaded_file.read().decode(errors="ignore")
+        st.sidebar.write("File content loaded.")
 
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant", avatar="😎").write(reply)
+# Audio upload (Voice Input)
+uploaded_audio = st.sidebar.file_uploader("Upload voice (wav, mp3, m4a)", type=["wav", "mp3", "m4a"])
+audio_text = ""
 
-# --- Voice Input ---
-if st.button("Record Voice"):
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write("🎤 Listening...")
-        audio = recognizer.listen(source)
-    try:
-        prompt = recognizer.recognize_google(audio)
-        st.write(f"You said: {prompt}")
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.spinner("Thinking..."):
-            reply = text_model.generate_content(prompt).text
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant", avatar="😎").write(reply)
-    except Exception as e:
-        st.write(f"Voice error: {e}")
+if uploaded_audio:
+    st.sidebar.audio(uploaded_audio)
+    # No speechrecognition — we'll just treat audio as input and mention it in chat
+    audio_text = "[Voice message uploaded]"
 
-# --- Text Chat Input ---
+# --- Chat Input ---
 if prompt := st.chat_input("Type Here..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user", avatar="😀").write(prompt)
+    # Combine file content / audio text with prompt
+    combined_input = prompt
+    if file_text_content:
+        combined_input += "\n\n[File content]:\n" + file_text_content
+    if audio_text:
+        combined_input += "\n\n" + audio_text
+    if uploaded_image:
+        combined_input += "\n\n[Image uploaded]"
 
+    # Save and display user message
+    st.session_state.messages.append({"role": "user", "content": combined_input})
+    st.chat_message("user", avatar="😀").write(combined_input)
+
+    # --- Image Generation Mode ---
     if prompt.lower().startswith("image:"):
         image_prompt = prompt[6:].strip()
         with st.spinner("Thinking..."):
@@ -109,6 +90,8 @@ if prompt := st.chat_input("Type Here..."):
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Image error: {e}"})
                 st.chat_message("assistant", avatar="😎").write(f"Image error: {e}")
+
+    # --- Text Generation Mode ---
     else:
         with st.spinner("Thinking..."):
             try:
