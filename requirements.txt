@@ -1,4 +1,5 @@
 streamlit
-streamlit-webrtc
 google-generativeai
-Pillow
+pillow
+python-docx
+PyPDF2
