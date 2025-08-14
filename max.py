@@ -3,6 +3,7 @@ import google.generativeai as genai
 from PIL import Image
 import io
 import base64
+import speech_recognition as sr
 
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
@@ -32,8 +33,57 @@ for msg in st.session_state.messages:
             elif isinstance(msg["content"], dict) and "image" in msg["content"]:
                 st.image(msg["content"]["image"], caption="Generated Image")
 
+# --- Extra Inputs ---
+col1, col2 = st.columns(2)
+with col1:
+    uploaded_file = st.file_uploader("Upload an image or file")
+with col2:
+    if st.button("🎤 Speak"):
+        recognizer = sr.Recognizer()
+        with sr.Microphone() as source:
+            st.info("Listening...")
+            audio = recognizer.listen(source)
+        try:
+            voice_text = recognizer.recognize_google(audio)
+            st.success(f"You said: {voice_text}")
+            prompt = voice_text
+        except Exception as e:
+            st.error(f"Voice error: {e}")
+            prompt = None
+
+# If file uploaded, handle it
+if uploaded_file:
+    try:
+        if uploaded_file.type.startswith("image/"):
+            img = Image.open(uploaded_file)
+            st.session_state.messages.append({"role": "user", "content": "[Uploaded Image]"})
+            st.chat_message("user", avatar="😀").image(img, caption="Uploaded Image")
+            # Optional: send to AI model
+            img_bytes = io.BytesIO()
+            img.save(img_bytes, format="PNG")
+            img_bytes.seek(0)
+            with st.spinner("Analyzing image..."):
+                try:
+                    img_response = image_model.generate_content(
+                        [genai.types.Part.from_bytes(img_bytes.read(), mime_type="image/png")]
+                    )
+                    reply = img_response.text
+                except Exception as e:
+                    reply = f"Image processing error: {e}"
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            st.chat_message("assistant", avatar="😎").write(reply)
+        else:
+            content = uploaded_file.read().decode(errors="ignore")
+            st.session_state.messages.append({"role": "user", "content": f"[Uploaded File]\n{content}"})
+            st.chat_message("user", avatar="😀").write(content)
+    except Exception as e:
+        st.error(f"File error: {e}")
+
 # --- Chat Input ---
-if prompt := st.chat_input("Type Here..."):
+if not uploaded_file:
+    prompt = st.chat_input("Type Here...") if 'prompt' not in locals() else prompt
+
+if prompt:
     # Save and display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
