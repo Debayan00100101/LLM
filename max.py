@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 
 # --- Streamlit Page Config ---
-st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
+st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠", layout="wide")
 st.title("Max 🧠")
 st.write("I can assist you by reasoning math, code also!!!")
 
@@ -43,24 +43,6 @@ for msg in st.session_state.messages:
         st.chat_message("user", avatar="😀").write(msg["content"])
     else:
         st.chat_message("assistant", avatar="😎").write(msg["content"])
-        # Add footer below AI messages
-        st.markdown(
-            """
-            <div style='
-                margin-top: 0.5rem;
-                padding: 0.5rem 1rem;
-                background-color: #1f2937;
-                color: #f9fafb;
-                border-radius: 0.5rem;
-                font-size: 0.875rem;
-                text-align: center;
-                opacity: 0.85;
-            '>
-                Max can make mistakes. Please verify important information. See <a href='#' style='color:#3b82f6; text-decoration:underline;'>Cookie Preferences</a>.
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
 
 # --- Chat Input ---
 prompt = st.chat_input("Type here...")
@@ -90,21 +72,31 @@ if prompt:
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant", avatar="😎").write(reply)
 
-    # Add polished footer below AI reply
-    st.markdown(
-        """
-        <div style='
-            margin-top: 0.5rem;
-            padding: 0.5rem 1rem;
+# --- Sticky Footer at Bottom ---
+st.markdown(
+    """
+    <style>
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
             background-color: #1f2937;
             color: #f9fafb;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
             text-align: center;
+            padding: 0.75rem 0;
+            font-size: 0.875rem;
             opacity: 0.85;
-        '>
-            Max can make mistakes. Please verify important information. See <a href='#' style='color:#3b82f6; text-decoration:underline;'>Cookie Preferences</a>.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            border-top: 1px solid #374151;
+        }
+        .footer a {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+    </style>
+    <div class="footer">
+        Max can make mistakes. Please verify important information. See <a href="#">Cookie Preferences</a>.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
