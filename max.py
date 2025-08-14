@@ -21,7 +21,7 @@ if "messages" not in st.session_state:
         {"role": "assistant", "content": "Hello 👋, how can I assist you today?"}
     ]
 
-# --- Chat History Display ---
+# --- Chat History ---
 for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.chat_message("user", avatar="😀").write(msg["content"])
@@ -32,14 +32,14 @@ for msg in st.session_state.messages:
             elif isinstance(msg["content"], dict) and "image" in msg["content"]:
                 st.image(msg["content"]["image"], caption="Generated Image")
 
-# --- File uploader above chat input (appears as part of bar visually) ---
-col1, col2 = st.columns([7, 3])
-with col1:
-    prompt = st.chat_input("Type here...")
-with col2:
-    file_upload = st.file_uploader("", type=["png", "jpg", "jpeg", "pdf", "txt"], label_visibility="collapsed")
+# --- File uploader right above bottom chat input ---
+file_upload = st.file_uploader(
+    "Attach a file", 
+    type=["png", "jpg", "jpeg", "pdf", "txt"], 
+    label_visibility="collapsed"
+)
 
-# --- Handle file upload ---
+# Process uploaded file
 if file_upload:
     try:
         if file_upload.type.startswith("image/"):
@@ -66,7 +66,9 @@ if file_upload:
     except Exception as e:
         st.error(f"File error: {e}")
 
-# --- Handle chat prompt ---
+# --- Chat input fixed at bottom ---
+prompt = st.chat_input("Type here...")
+
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
