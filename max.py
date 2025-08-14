@@ -5,6 +5,7 @@ import google.generativeai as genai
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
 st.title("Max 🧠")
 st.write("I can assist you by reasoning math, code also!!!")
+
 # --- Configure Gemini API ---
 genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
@@ -13,10 +14,10 @@ text_model = genai.GenerativeModel("gemini-2.0-flash")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- Create placeholder for intro text ---
+# --- Placeholder for intro text ---
 intro_placeholder = st.empty()
 
-# --- Show "Max" if no messages yet ---
+# --- Show intro if no messages yet ---
 if len(st.session_state.messages) == 0:
     intro_placeholder.markdown(
         """
@@ -36,12 +37,30 @@ if len(st.session_state.messages) == 0:
         unsafe_allow_html=True
     )
 
-# --- Display Saved Chat History ---
+# --- Display saved chat history ---
 for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.chat_message("user", avatar="😀").write(msg["content"])
     else:
         st.chat_message("assistant", avatar="😎").write(msg["content"])
+        # Add footer below AI messages
+        st.markdown(
+            """
+            <div style='
+                margin-top: 0.5rem;
+                padding: 0.5rem 1rem;
+                background-color: #1f2937;
+                color: #f9fafb;
+                border-radius: 0.5rem;
+                font-size: 0.875rem;
+                text-align: center;
+                opacity: 0.85;
+            '>
+                Max can make mistakes. Please verify important information. See <a href='#' style='color:#3b82f6; text-decoration:underline;'>Cookie Preferences</a>.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 # --- Chat Input ---
 prompt = st.chat_input("Type here...")
@@ -70,7 +89,22 @@ if prompt:
     # Save & display AI message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant", avatar="😎").write(reply)
-    st.write("__Max can make mistakes, check important information See Cookie Preferences.__")
 
-
-
+    # Add polished footer below AI reply
+    st.markdown(
+        """
+        <div style='
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #1f2937;
+            color: #f9fafb;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            text-align: center;
+            opacity: 0.85;
+        '>
+            Max can make mistakes. Please verify important information. See <a href='#' style='color:#3b82f6; text-decoration:underline;'>Cookie Preferences</a>.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
