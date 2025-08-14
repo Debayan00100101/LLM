@@ -31,7 +31,7 @@ for msg in st.session_state.messages:
                 st.image(msg["content"]["image"], caption="Generated Image")
 
 # --- Chat Input ---
-if prompt := st.chat_input("Type a message or 'image: your prompt'..."):
+if prompt := st.chat_input("Type Here..."):
     # Save and display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
@@ -65,3 +65,4 @@ if prompt := st.chat_input("Type a message or 'image: your prompt'..."):
                 reply = f"Error: {e}"
         st.session_state.messages.append({"role": "assistant", "content": reply})
         st.chat_message("assistant", avatar="😎").write(reply)
+
