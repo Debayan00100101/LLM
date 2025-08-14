@@ -1,95 +1,103 @@
 import streamlit as st
 import google.generativeai as genai
-import os
+import hashlib
+import json
+from pathlib import Path
+from streamlit_oauth import OAuth2Component
 
-# --- Config ---
+# -------------------
+# CONFIG
+# -------------------
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
 
-# --- Read credentials from data.txt ---
-def load_users(file_path="data.txt"):
-    users = {}
-    if os.path.exists(file_path):
-        with open(file_path, "r") as f:
-            for line in f:
-                parts = line.strip().split(",")
-                if len(parts) == 2:
-                    users[parts[0]] = parts[1]
-    return users
+DATA_FILE = "data.txt"
 
-# --- Login System ---
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+# -------------------
+# LOAD USERS
+# -------------------
+def load_users():
+    if Path(DATA_FILE).exists():
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    return {"users": [], "openai_keys": [], "google_users": []}
 
-if not st.session_state.logged_in:
-    st.title("Login to Max-AI")
+def save_users(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f)
+
+def hash_pw(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# -------------------
+# LOGIN SYSTEM
+# -------------------
+users_data = load_users()
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "username" not in st.session_state:
+    st.session_state.username = None
+
+def login_username_password():
+    st.subheader("Login with Username & Password")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Login"):
-        users = load_users("data.txt")
-        if username in users and users[username] == password:
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.success("Login successful!")
-            st.experimental_rerun()
+        for u in users_data["users"]:
+            if u["username"] == username and u["password"] == hash_pw(password):
+                st.session_state.authenticated = True
+                st.session_state.username = username
+                st.success(f"Welcome {username}")
+                return
+        st.error("Invalid credentials")
+
+def login_openai():
+    st.subheader("Login with OpenAI API Key")
+    key = st.text_input("Enter your OpenAI API Key", type="password")
+    if st.button("Login with OpenAI"):
+        if key in users_data["openai_keys"]:
+            st.session_state.authenticated = True
+            st.session_state.username = "OpenAI_User"
+            st.success("OpenAI login successful")
         else:
-            st.error("Invalid username or password")
-    st.stop()
+            st.error("Invalid API Key")
 
-# --- AI Chat UI ---
-st.title("Max 🧠")
-genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
-text_model = genai.GenerativeModel("gemini-2.0-flash")
+def login_google():
+    st.subheader("Login with Google")
+    client_id = "YOUR_GOOGLE_CLIENT_ID"
+    client_secret = "YOUR_GOOGLE_CLIENT_SECRET"
+    redirect_uri = "http://localhost:8501"
+    oauth2 = OAuth2Component(client_id, client_secret, "https://accounts.google.com/o/oauth2/auth", "https://oauth2.googleapis.com/token")
+    auth_url = oauth2.authorize_url(redirect_uri, scope="openid email profile", state="random_state")
+    st.markdown(f"[Login with Google]({auth_url})")
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# -------------------
+# SHOW LOGIN OPTIONS
+# -------------------
+if not st.session_state.authenticated:
+    st.title("Login to Max-AI")
+    method = st.radio("Choose Login Method", ["Username & Password", "OpenAI Key", "Google Login"])
+    if method == "Username & Password":
+        login_username_password()
+    elif method == "OpenAI Key":
+        login_openai()
+    elif method == "Google Login":
+        login_google()
+else:
+    # -------------------
+    # MAIN CHAT APP
+    # -------------------
+    genai.configure(api_key="AIzaSyALrcQnmp16z2h2ParAb6PXimCpN0HxX8Y")
+    text_model = genai.GenerativeModel("gemini-2.0-flash")
 
-# --- Placeholder for intro text ---
-intro_placeholder = st.empty()
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-# Show intro only before chat starts
-if len(st.session_state.messages) == 0:
-    intro_placeholder.markdown(
-        f"""
-        <div style='
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 65vh;
-            font-size: 8rem;
-            font-weight: bold;
-            color: white;
-            opacity: 0.5;
-        '>
-            Max
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    prompt = st.chat_input("Type here...")
+    if prompt:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        reply = text_model.generate_content(prompt).text
+        st.session_state.messages.append({"role": "assistant", "content": reply})
 
-# --- Display Chat History ---
-for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.chat_message("user", avatar="😀").write(msg["content"])
-    else:
-        st.chat_message("assistant", avatar="😎").write(msg["content"])
-
-# --- Chat Input ---
-prompt = st.chat_input("Type here...")
-
-if prompt:
-    intro_placeholder.empty()  # Remove intro
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user", avatar="😀").write(prompt)
-
-    # Prepare conversation history
-    history_text = "\n".join([f"{m['role'].capitalize()}: {m['content']}" for m in st.session_state.messages])
-
-    # Generate AI reply
-    with st.spinner("Thinking..."):
-        try:
-            reply = text_model.generate_content(history_text).text
-        except Exception as e:
-            reply = f"Error: {e}"
-
-    st.session_state.messages.append({"role": "assistant", "content": reply})
-    st.chat_message("assistant", avatar="😎").write(reply)
+    for msg in st.session_state.messages:
+        st.chat_message(msg["role"]).write(msg["content"])
