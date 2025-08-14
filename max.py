@@ -9,7 +9,7 @@ st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
 st.title("Max 🧠")
 
 # --- Configure Gemini API ---
-genai.configure(api_key="YOUR_API_KEY")
+genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI")
 
 # Models
 text_model = genai.GenerativeModel("gemini-2.0-flash")
@@ -32,34 +32,14 @@ for msg in st.session_state.messages:
             elif isinstance(msg["content"], dict) and "image" in msg["content"]:
                 st.image(msg["content"]["image"], caption="Generated Image")
 
-# --- Custom Input Bar ---
-st.markdown("""
-    <style>
-    .input-bar {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        background: #f0f2f6;
-        padding: 8px;
-        border-radius: 12px;
-    }
-    .input-text {
-        flex: 1;
-    }
-    .stFileUploader {
-        margin-top: -5px;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# --- File uploader above chat input (appears as part of bar visually) ---
+col1, col2 = st.columns([7, 3])
+with col1:
+    prompt = st.chat_input("Type here...")
+with col2:
+    file_upload = st.file_uploader("", type=["png", "jpg", "jpeg", "pdf", "txt"], label_visibility="collapsed")
 
-with st.container():
-    col1, col2 = st.columns([8, 2])
-    with col1:
-        user_input = st.text_input("Type here...", label_visibility="collapsed", key="chat_input")
-    with col2:
-        file_upload = st.file_uploader("", type=["png", "jpg", "jpeg", "pdf", "txt"], label_visibility="collapsed", key="file_upload")
-
-# --- File Logic ---
+# --- Handle file upload ---
 if file_upload:
     try:
         if file_upload.type.startswith("image/"):
@@ -86,14 +66,13 @@ if file_upload:
     except Exception as e:
         st.error(f"File error: {e}")
 
-# --- Handle Prompt ---
-if user_input:
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    st.chat_message("user", avatar="😀").write(user_input)
+# --- Handle chat prompt ---
+if prompt:
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.chat_message("user", avatar="😀").write(prompt)
 
-    # Image generation mode
-    if user_input.lower().startswith("image:"):
-        image_prompt = user_input[6:].strip()
+    if prompt.lower().startswith("image:"):
+        image_prompt = prompt[6:].strip()
         with st.spinner("Thinking..."):
             try:
                 img_response = image_model.generate_content(
@@ -108,8 +87,6 @@ if user_input:
             except Exception as e:
                 st.session_state.messages.append({"role": "assistant", "content": f"Image error: {e}"})
                 st.chat_message("assistant", avatar="😎").write(f"Image error: {e}")
-
-    # Text generation mode
     else:
         with st.spinner("Thinking..."):
             try:
