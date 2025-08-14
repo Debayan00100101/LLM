@@ -6,7 +6,7 @@ from PyPDF2 import PdfReader
 import docx
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 import av
-import speech_recognition as sr  # OPTIONAL, will work only locally with mic
+
 import os
 
 # ======================
@@ -98,4 +98,5 @@ if st.button("Send"):
         st.write("**Assistant:**", response.text)
     else:
         st.warning("Please enter text, upload a file, or upload an image.")
+
 
