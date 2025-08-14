@@ -1,158 +1,98 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
+import tempfile
+import os
 import io
 import base64
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode
-import tempfile
-import os
-import wave
+import speech_recognition as sr
 
 # --- Streamlit Page Config ---
-st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
+st.set_page_config(page_title="Max AI by Debayan", page_icon="🧠")
 st.title("Max 🧠")
 
-# --- Configure Gemini API ---
-genai.configure(api_key="AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI")
+# --- Gemini API Key (Unsafe Hardcode as requested) ---
+API_KEY = "AIzaSyDDwpm0Qt8-L424wY1oXcJThjZwFDeiUNI"
+genai.configure(api_key=API_KEY)
 
-# Models
-text_model = genai.GenerativeModel("gemini-2.0-flash")
-image_model = genai.GenerativeModel("gemini-1.5-flash")  # supports images
-
-# --- Session State for Memory ---
+# --- Session State for Chat History ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Hello 👋, there how can I assist you today?"}
-    ]
-if "voice_text" not in st.session_state:
-    st.session_state.voice_text = None
-if "uploaded_file_data" not in st.session_state:
-    st.session_state.uploaded_file_data = None
+    st.session_state.messages = []
 
-# --- Display Chat History ---
-for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.chat_message("user", avatar="😀").write(msg["content"])
-    else:
-        with st.chat_message("assistant", avatar="😎"):
-            if isinstance(msg["content"], str):
-                st.write(msg["content"])
-            elif isinstance(msg["content"], dict) and "image" in msg["content"]:
-                st.image(msg["content"]["image"], caption="Generated Image")
+# --- Gemini Chat Function ---
+def chat_with_gemini(prompt, image_file=None, doc_file=None):
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    content = [{"role": "user", "parts": [{"text": prompt}]}]
 
-# --- Browser Voice Input ---
+    # Add image if present
+    if image_file:
+        img = Image.open(image_file)
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format="PNG")
+        content[0]["parts"].append({"mime_type": "image/png", "data": img_bytes.getvalue()})
+
+    # Add document if present
+    if doc_file:
+        doc_bytes = doc_file.read()
+        content[0]["parts"].append({"mime_type": "application/octet-stream", "data": doc_bytes})
+
+    response = model.generate_content(content)
+    return response.text
+
+# --- Voice Recording ---
 class AudioProcessor(AudioProcessorBase):
     def __init__(self):
-        self.frames = []
+        self.recognizer = sr.Recognizer()
+
     def recv_audio(self, frame):
-        self.frames.append(frame.to_ndarray().tobytes())
+        audio_data = frame.to_ndarray().tobytes()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+            tmp.write(audio_data)
+            tmp_path = tmp.name
+        with sr.AudioFile(tmp_path) as source:
+            audio = self.recognizer.record(source)
+        try:
+            text = self.recognizer.recognize_google(audio)
+            st.session_state.voice_text = text
+        except sr.UnknownValueError:
+            st.session_state.voice_text = ""
+        os.remove(tmp_path)
         return frame
 
-# Input area with tabs for different input methods
-tab_text, tab_file, tab_voice = st.tabs(["Type...", "File/Image", "🎤Voice"])
+st.subheader("Chat Input")
 
-with tab_text:
-    prompt = st.chat_input("Type your message here...")
-
-with tab_file:
-    uploaded_file = st.file_uploader("Upload a file or image", type=None)
-    if uploaded_file:
-        st.session_state.uploaded_file_data = uploaded_file
-        prompt = f"[Uploaded {uploaded_file.name}]"
-
-with tab_voice:
-    webrtc_ctx = webrtc_streamer(
-        key="speech",
+# --- Voice Input ---
+if st.button("🎤 Record Voice"):
+    webrtc_streamer(
+        key="voice",
         mode=WebRtcMode.SENDONLY,
         audio_processor_factory=AudioProcessor,
         media_stream_constraints={"audio": True, "video": False},
     )
-    if webrtc_ctx.audio_processor and st.button("Stop Recording & Process"):
-        temp_audio_path = tempfile.mktemp(suffix=".wav")
-        wf = wave.open(temp_audio_path, 'wb')
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(44100)
-        wf.writeframes(b''.join(webrtc_ctx.audio_processor.frames))
-        wf.close()
-        with open(temp_audio_path, "rb") as f:
-            audio_data = f.read()
-        try:
-            transcribe_model = genai.GenerativeModel("gemini-1.5-flash")
-            result = transcribe_model.generate_content(
-                [genai.types.Part.from_bytes(audio_data, mime_type="audio/wav")]
-            )
-            st.session_state.voice_text = result.text
-            st.success(f"Voice input: {result.text}")
-            prompt = result.text
-        except Exception as e:
-            st.error(f"Transcription error: {e}")
-        os.remove(temp_audio_path)
 
-# Handle file uploads
-if st.session_state.uploaded_file_data:
-    file = st.session_state.uploaded_file_data
-    try:
-        if file.type.startswith("image/"):
-            img = Image.open(file)
-            st.session_state.messages.append({"role": "user", "content": "[Uploaded Image]"})
-            st.chat_message("user", avatar="😀").image(img, caption="Uploaded Image")
-            img_bytes = io.BytesIO()
-            img.save(img_bytes, format="PNG")
-            img_bytes.seek(0)
-            with st.spinner("Analyzing image..."):
-                try:
-                    img_response = image_model.generate_content(
-                        [genai.types.Part.from_bytes(img_bytes.read(), mime_type="image/png")]
-                    )
-                    reply = img_response.text
-                except Exception as e:
-                    reply = f"Image processing error: {e}"
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            st.chat_message("assistant", avatar="😎").write(reply)
-        else:
-            content = file.read().decode(errors="ignore")
-            st.session_state.messages.append({"role": "user", "content": f"[Uploaded File]\n{content}"})
-            st.chat_message("user", avatar="😀").write(content)
-    except Exception as e:
-        st.error(f"File error: {e}")
-    st.session_state.uploaded_file_data = None
+voice_text = st.session_state.get("voice_text", "")
 
-# Process voice text
-if st.session_state.voice_text and not prompt:
-    prompt = st.session_state.voice_text
-    st.session_state.voice_text = None
+# --- Text Input ---
+user_text = st.text_area("Type your message", value=voice_text, height=100)
 
-# --- Chat Handling ---
-if prompt:
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user", avatar="😀").write(prompt)
+# --- File Uploads ---
+uploaded_image = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
+uploaded_doc = st.file_uploader("Upload File", type=["pdf", "txt", "docx"])
 
-    if prompt.lower().startswith("image:"):
-        image_prompt = prompt[6:].strip()
-        with st.spinner("Thinking..."):
-            try:
-                img_response = image_model.generate_content(
-                    image_prompt,
-                    generation_config={"response_mime_type": "image/png"}
-                )
-                image_data = img_response.candidates[0].content.parts[0].inline_data.data
-                image_bytes = base64.b64decode(image_data)
-                img = Image.open(io.BytesIO(image_bytes))
-                st.session_state.messages.append({"role": "assistant", "content": {"image": img}})
-                st.chat_message("assistant", avatar="😎").image(img, caption="Generated Image")
-            except Exception as e:
-                st.session_state.messages.append({"role": "assistant", "content": f"Image error: {e}"})
-                st.chat_message("assistant", avatar="😎").write(f"Image error: {e}")
+# --- Send Button ---
+if st.button("Send"):
+    if user_text.strip() == "" and not uploaded_image and not uploaded_doc:
+        st.warning("Please enter text, upload an image, or record voice.")
     else:
-        with st.spinner("Thinking..."):
-            try:
-                history_text = "\n".join([
-                    f"{m['role'].capitalize()}: {m['content'] if isinstance(m['content'], str) else '[Image]'}"
-                    for m in st.session_state.messages
-                ])
-                reply = text_model.generate_content(history_text).text
-            except Exception as e:
-                reply = f"Error: {e}"
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant", avatar="😎").write(reply)
+        response = chat_with_gemini(user_text, uploaded_image, uploaded_doc)
+        st.session_state.messages.append(("User", user_text))
+        st.session_state.messages.append(("AI", response))
+
+# --- Display Chat History ---
+st.subheader("Chat History")
+for sender, msg in st.session_state.messages:
+    if sender == "User":
+        st.markdown(f"**You:** {msg}")
+    else:
+        st.markdown(f"**AI:** {msg}")
