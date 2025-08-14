@@ -4,7 +4,7 @@ import google.generativeai as genai
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
 st.title("Max 🧠")
-
+st.write("I can assist you by reasoning math, code also!!!")
 # --- Configure Gemini API ---
 genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
@@ -70,5 +70,6 @@ if prompt:
     # Save & display AI message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant", avatar="😎").write(reply)
+st.write("__Max can make mistakes, check important information See Cookie Preferences.__")
 
 
