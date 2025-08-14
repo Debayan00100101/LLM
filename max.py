@@ -1,25 +1,55 @@
 import streamlit as st
 import google.generativeai as genai
+import os
 
-# --- Streamlit Page Config ---
+# --- Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠")
-st.title("Max 🧠")
 
-# --- Configure Gemini API ---
+# --- Read credentials from data.txt ---
+def load_users(file_path="data.txt"):
+    users = {}
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            for line in f:
+                parts = line.strip().split(",")
+                if len(parts) == 2:
+                    users[parts[0]] = parts[1]
+    return users
+
+# --- Login System ---
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.title("Login to Max-AI")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    if st.button("Login"):
+        users = load_users("data.txt")
+        if username in users and users[username] == password:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.success("Login successful!")
+            st.experimental_rerun()
+        else:
+            st.error("Invalid username or password")
+    st.stop()
+
+# --- AI Chat UI ---
+st.title("Max 🧠")
 genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
 
-# --- Session State ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- Create placeholder for intro text ---
+# --- Placeholder for intro text ---
 intro_placeholder = st.empty()
 
-# --- Show "Max" if no messages yet ---
+# Show intro only before chat starts
 if len(st.session_state.messages) == 0:
     intro_placeholder.markdown(
-        """
+        f"""
         <div style='
             display: flex;
             justify-content: center;
@@ -36,7 +66,7 @@ if len(st.session_state.messages) == 0:
         unsafe_allow_html=True
     )
 
-# --- Display Saved Chat History ---
+# --- Display Chat History ---
 for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.chat_message("user", avatar="😀").write(msg["content"])
@@ -47,18 +77,12 @@ for msg in st.session_state.messages:
 prompt = st.chat_input("Type here...")
 
 if prompt:
-    # Remove intro instantly
-    intro_placeholder.empty()
-
-    # Save & display user message
+    intro_placeholder.empty()  # Remove intro
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
 
-    # Prepare conversation history for AI
-    history_text = "\n".join([
-        f"{m['role'].capitalize()}: {m['content']}"
-        for m in st.session_state.messages
-    ])
+    # Prepare conversation history
+    history_text = "\n".join([f"{m['role'].capitalize()}: {m['content']}" for m in st.session_state.messages])
 
     # Generate AI reply
     with st.spinner("Thinking..."):
@@ -67,6 +91,5 @@ if prompt:
         except Exception as e:
             reply = f"Error: {e}"
 
-    # Save & display AI message
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant", avatar="😎").write(reply)
