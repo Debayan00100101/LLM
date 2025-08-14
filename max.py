@@ -12,11 +12,9 @@ text_model = genai.GenerativeModel("gemini-2.0-flash")
 # --- Session State ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "show_intro" not in st.session_state:
-    st.session_state.show_intro = True  # Flag to control intro text
 
-# --- Show "Max" in center before chat starts ---
-if st.session_state.show_intro and not st.session_state.messages:
+# --- If no chat yet, show big "Max" ---
+if len(st.session_state.messages) == 0:
     st.markdown(
         """
         <div style='
@@ -46,9 +44,6 @@ for msg in st.session_state.messages:
 prompt = st.chat_input("Type here...")
 
 if prompt:
-    # Hide intro permanently after first message
-    st.session_state.show_intro = False
-
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user", avatar="😀").write(prompt)
