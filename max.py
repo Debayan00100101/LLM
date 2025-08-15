@@ -26,7 +26,7 @@ if len(st.session_state.messages) == 0:
             justify-content: center;
             align-items: center;
             height: 65vh;
-            font-size: 6rem;
+            font-size: 3rem;
             font-weight: bold;
             color: white;
             opacity: 0.5;
@@ -100,3 +100,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
