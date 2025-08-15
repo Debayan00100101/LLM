@@ -4,8 +4,7 @@ import google.generativeai as genai
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠", layout="wide")
 st.title("Max 🧠")
-st.write("I can assist you by reasoning math, code also!!!")
-
+st.chat_message("assistant", avatar="😎").write("I can help you about math & code also...")
 # --- Configure Gemini API ---
 genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
@@ -100,4 +99,5 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
