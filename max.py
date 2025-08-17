@@ -39,7 +39,7 @@ if len(st.session_state.messages) == 0:
 # --- Display saved chat history ---
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.chat_message("user", avatar="https://www.google.com/url?sa=i&url=https%3A%2F%2Fiphonexpapers.com%2Fnc05-night-sky-fly-sanfrancisco-usa-sea-flare%2F&psig=AOvVaw0Huy9aPGJuaawDRzT62Pr1&ust=1755511820750000&source=images&cd=vfe&opi=89978449&ved=0CBUQjRxqFwoTCND1_ajNkY8DFQAAAAAdAAAAABAE").write(msg["content"])
+        st.chat_message("user", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
     else:
         st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
 
@@ -52,7 +52,7 @@ if prompt:
 
     # Save & display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user", avatar="https://www.google.com/url?sa=i&url=https%3A%2F%2Fiphonexpapers.com%2Fnc05-night-sky-fly-sanfrancisco-usa-sea-flare%2F&psig=AOvVaw0Huy9aPGJuaawDRzT62Pr1&ust=1755511820750000&source=images&cd=vfe&opi=89978449&ved=0CBUQjRxqFwoTCND1_ajNkY8DFQAAAAAdAAAAABAE").write(prompt)
+    st.chat_message("user", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(prompt)
 
     # Prepare conversation history for AI
     history_text = "\n".join([
@@ -99,6 +99,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
