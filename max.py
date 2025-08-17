@@ -4,7 +4,7 @@ import google.generativeai as genai
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Max-AI by Debayan", page_icon="🧠", layout="wide")
 st.html("<h1 style='font-size:60px;'>Max 🧠</h1>")
-st.chat_message("assistant", avatar="😎").write("I can help you about math & code also...")
+st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write("I can help you about math & code also...")
 # --- Configure Gemini API ---
 genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
@@ -41,7 +41,7 @@ for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.chat_message("user", avatar="😀").write(msg["content"])
     else:
-        st.chat_message("assistant", avatar="😎").write(msg["content"])
+        st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
 
 # --- Chat Input ---
 prompt = st.chat_input("Type here...")
@@ -69,7 +69,7 @@ if prompt:
 
     # Save & display AI message
     st.session_state.messages.append({"role": "assistant", "content": reply})
-    st.chat_message("assistant", avatar="😎").write(reply)
+    st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(reply)
 
 # --- Sticky Footer at Bottom ---
 st.markdown(
@@ -99,6 +99,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
