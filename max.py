@@ -39,9 +39,9 @@ if len(st.session_state.messages) == 0:
 # --- Display saved chat history ---
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.chat_message("user", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
+        st.chat_message("user", avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(msg["content"])
     else:
-        st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
+        st.chat_message("assistant", avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(msg["content"])
 
 # --- Chat Input ---
 prompt = st.chat_input("Type here...")
@@ -99,6 +99,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
