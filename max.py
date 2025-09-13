@@ -84,6 +84,7 @@ if registered_email is None:
                 save_accounts()
                 save_last_user(email)
                 st.success(f"Account created! Your email: {email}")
+                st.write("Rerun to chat!!!")
 else:
     st.sidebar.title("Chats✨")
     if registered_email not in all_chats:
@@ -201,3 +202,4 @@ else:
         """,
         unsafe_allow_html=True
     )
+
