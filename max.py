@@ -5,28 +5,26 @@ import os
 import hashlib
 import uuid
 
-# --- Streamlit Page Config ---
 st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
-# --- File paths ---
+# --- Files ---
 ACCOUNTS_FILE = "accounts.json"
-LAST_USER_FILE = "last_user.json"
 CHATS_FILE = "all_chats.json"
 DEVICE_FILE = "device_id.json"
+LAST_USER_FILE = "last_user.json"
 
-# --- Initialize files if not exist ---
+# --- Initialize files ---
 for file_path, default in [(ACCOUNTS_FILE, {}), (CHATS_FILE, {})]:
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
             json.dump(default, f)
 
-# --- Load accounts and chats ---
 with open(ACCOUNTS_FILE, "r") as f:
     accounts = json.load(f)
 with open(CHATS_FILE, "r") as f:
     all_chats = json.load(f)
 
-# --- Device ID ---
+# --- Generate/Get unique device ID ---
 def get_device_id():
     if os.path.exists(DEVICE_FILE):
         with open(DEVICE_FILE, "r") as f:
@@ -57,7 +55,7 @@ def get_last_user():
         with open(LAST_USER_FILE, "r") as f:
             data = json.load(f)
             if data.get("device_id") == device_id:
-                return data.get("email", None)
+                return data.get("email")
     return None
 
 def save_chats():
@@ -70,42 +68,41 @@ if "messages" not in st.session_state:
 if "current_chat_id" not in st.session_state:
     st.session_state.current_chat_id = None
 
-# --- Sidebar and style ---
-st.markdown(
-    """
-    <style>
-    [data-testid="stSidebar"] {background-color: #141a22 !important; color: #f9fafb;}
-    [data-testid="stSidebar"] input, [data-testid="stSidebar"] textarea, [data-testid="stSidebar"] .stSelectbox select, [data-testid="stSidebar"] button {
-        background-color: #141a22 !important; color: #f9fafb; border: 1px solid #374151;
-    }
-    [data-testid="stSidebar"] button:hover {background-color: #1e2530 !important;}
-    [data-testid="stSidebar"] .stTextInput>div>input, [data-testid="stSidebar"] .stTextArea>div>textarea {
-        background-color: #141a22 !important; color: #f9fafb;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# --- Sidebar styling ---
+st.markdown("""
+<style>
+[data-testid="stSidebar"] {background-color: #141a22 !important; color: #f9fafb;}
+[data-testid="stSidebar"] input, [data-testid="stSidebar"] textarea, [data-testid="stSidebar"] .stSelectbox select, [data-testid="stSidebar"] button {
+    background-color: #141a22 !important; color: #f9fafb; border: 1px solid #374151;
+}
+[data-testid="stSidebar"] button:hover {background-color: #1e2530 !important;}
+[data-testid="stSidebar"] .stTextInput>div>input, [data-testid="stSidebar"] .stTextArea>div>textarea {
+    background-color: #141a22 !important; color: #f9fafb;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# --- Check last user ---
+# --- Check last user for this device ---
 registered_email = get_last_user()
 
+# --- Registration / login ---
 if registered_email is None:
-    st.title("Max-AI Registration System (One-Time)")
+    st.title("Max-AI Registration System (Device-Specific)")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Register"):
         if not username or not password:
-            st.error("Please enter both username and password!")
+            st.error("Enter both username and password!")
         else:
             email = f"{username}@max.com"
             if email in accounts:
                 st.error("Username already taken!")
             else:
+                # Create account for this device
                 accounts[email] = {"password": hash_password(password), "username": username}
                 save_accounts()
                 save_last_user(email)
-                st.success(f"Account created! Your email: {email}")
+                st.success(f"Account created for this device! Email: {email}")
 else:
     st.sidebar.title("Chats")
     if registered_email not in all_chats:
@@ -120,7 +117,7 @@ else:
         st.session_state.current_chat_id = new_chat_id
         st.session_state.messages = []
 
-    # --- Chat selection ---
+    # --- Select chat ---
     chat_ids = list(user_chats.keys())
     if not chat_ids:
         new_chat_id = str(uuid.uuid4())
@@ -170,14 +167,14 @@ else:
         save_chats()
         if os.path.exists(LAST_USER_FILE):
             os.remove(LAST_USER_FILE)
-        st.success("Account deleted! You can now create an account with the same username.")
+        st.success("Account deleted! You can now create an account on this device.")
         st.stop()
 
-    # --- Main chat interface ---
+    # --- Main Chat UI ---
     st.html("<h1 style='font-size:60px;'>Max 🧠</h1>")
 
-    # --- Configure AI ---
-    genai.configure(api_key="YOUR_API_KEY_HERE")  # <-- replace with your key
+    # Configure AI
+    genai.configure(api_key="YOUR_API_KEY_HERE")
     text_model = genai.GenerativeModel("gemini-2.0-flash")
 
     intro_placeholder = st.empty()
@@ -222,13 +219,10 @@ else:
             save_chats()
 
     # --- Footer ---
-    st.markdown(
-        """
-        <style>
-            .footer {position: fixed; left: 0; bottom: 0; width: 100%; background-color: #1f2937; color: #f9fafb; text-align: center; padding: 0.75rem 0; font-size: 0.875rem; opacity: 0.85; border-top: 1px solid #374151;}
-            .footer a {color: #3b82f6; text-decoration: underline;}
-        </style>
-        <div class="footer">Max can make mistakes. Please verify important information. See <a href="#">Cookie Preferences</a>.</div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <style>
+        .footer {position: fixed; left: 0; bottom: 0; width: 100%; background-color: #1f2937; color: #f9fafb; text-align: center; padding: 0.75rem 0; font-size: 0.875rem; opacity: 0.85; border-top: 1px solid #374151;}
+        .footer a {color: #3b82f6; text-decoration: underline;}
+    </style>
+    <div class="footer">Max can make mistakes. Please verify important information. See <a href="#">Cookie Preferences</a>.</div>
+    """, unsafe_allow_html=True)
