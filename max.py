@@ -9,6 +9,7 @@ st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
 ACCOUNTS_FILE = "accounts.json"
 CHATS_FILE = "all_chats.json"
+DEVICE_FILE = "device_last_user.json"  # per-device persistence
 
 # --- Initialize files ---
 if not os.path.exists(ACCOUNTS_FILE):
@@ -35,12 +36,21 @@ def save_chats():
     with open(CHATS_FILE, "w") as f:
         json.dump(all_chats, f)
 
-# --- Use session_state instead of file for logged in user ---
+# --- Device-specific login persistence ---
 def save_last_user(email):
-    st.session_state["last_user"] = email
+    with open(DEVICE_FILE, "w") as f:
+        json.dump({"email": email}, f)
 
 def get_last_user():
-    return st.session_state.get("last_user", None)
+    if os.path.exists(DEVICE_FILE):
+        with open(DEVICE_FILE, "r") as f:
+            data = json.load(f)
+            return data.get("email", None)
+    return None
+
+def clear_last_user():
+    if os.path.exists(DEVICE_FILE):
+        os.remove(DEVICE_FILE)
 
 # --- Session init ---
 if "messages" not in st.session_state:
@@ -69,10 +79,10 @@ st.markdown(
 registered_email = get_last_user()
 
 if registered_email is None:
-    st.title("Max-AI Registration System (Per-Device)")
+    st.title("Max-AI Registration System (Per-Device Permanent)")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-    if st.button("Register"):
+    if st.button("Register / Login"):
         if not username or not password:
             st.error("Please enter both username and password!")
         else:
@@ -80,13 +90,13 @@ if registered_email is None:
             if email in accounts:
                 if accounts[email]["password"] == hash_password(password):
                     st.success("Login successful!")
-                    save_last_user(email)
+                    save_last_user(email)  # persist login for this device
                 else:
                     st.error("Wrong password for this username!")
             else:
                 accounts[email] = {"password": hash_password(password), "username": username}
                 save_accounts()
-                save_last_user(email)
+                save_last_user(email)  # save new account on this device
                 st.success(f"Account created! Your email: {email}")
                 st.write("Rerun to chat!!!")
 else:
@@ -146,9 +156,13 @@ else:
             del all_chats[registered_email]
         save_accounts()
         save_chats()
-        if "last_user" in st.session_state:
-            del st.session_state["last_user"]
+        clear_last_user()  # remove device login
         st.success("Account deleted! You can now create an account with the same username.")
+        st.stop()
+
+    if st.sidebar.button("🚪 Log Out (This Device)"):
+        clear_last_user()
+        st.success("Logged out from this device. Restart to re-register/login.")
         st.stop()
 
     st.html("<h1 style='font-size:60px;'>Max 🧠</h1>")
