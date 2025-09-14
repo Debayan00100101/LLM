@@ -178,10 +178,10 @@ else:
         
 
     # --- Main Chat UI ---
-    st.html("<h1 style='font-size:60px;'>Max 🧠</h1>")
+    st.html("<center><h1 style='font-size:60px;'>Max 🧠</h1></center>")
 
     # --- Configure AI ---
-    genai.configure(api_key="YOUR_API_KEY_HERE")
+    genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
     text_model = genai.GenerativeModel("gemini-2.0-flash")
 
     intro_placeholder = st.empty()
@@ -194,16 +194,16 @@ else:
     # --- Display messages ---
     for msg in st.session_state.messages:
         if msg["role"] == "user":
-            st.chat_message("user").write(msg["content"])
+            st.chat_message("user",avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(msg["content"])
         else:
-            st.chat_message("assistant").write(msg["content"])
+            st.chat_message("assistant",avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
 
     # --- Chat input ---
     prompt = st.chat_input("Type here...")
     if prompt:
         intro_placeholder.empty()
         st.session_state.messages.append({"role": "user", "content": prompt})
-        st.chat_message("user").write(prompt)
+        st.chat_message("user",avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(prompt)
         if user_chats[selected_chat_id]["title"] == "New Chat" and prompt:
             user_chats[selected_chat_id]["title"] = prompt[:30]
 
@@ -220,7 +220,7 @@ else:
                 reply = f"Error: {e}"
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant").write(reply)
+        st.chat_message("assistant",avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(reply)
         user_chats[selected_chat_id]["messages"] = st.session_state.messages
         save_chats()
 
@@ -232,6 +232,7 @@ else:
     </style>
     <div class="footer">Max can make mistakes. Please verify important information. See <a href="#">Cookie Preferences</a>.</div>
     """, unsafe_allow_html=True)
+
 
 
 
