@@ -46,8 +46,15 @@ def save_current_user():
         json.dump(current_user_data, f)
 
 # Session state
-if "user_email" not in st.session_state:
-    st.session_state.user_email = current_user_data.get("user_email")
+stored_email = current_user_data.get("user_email")
+if stored_email and stored_email in accounts:
+    st.session_state.user_email = stored_email
+else:
+    st.session_state.user_email = None
+    if "user_email" in current_user_data:
+        del current_user_data["user_email"]
+        save_current_user()
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "current_chat_id" not in st.session_state:
