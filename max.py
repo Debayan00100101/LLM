@@ -7,32 +7,17 @@ import uuid
 
 st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
-# --- Generate/Get unique device ID ---
-DEVICE_ID_FILE = "device_id.json"
-if os.path.exists(DEVICE_ID_FILE):
-    with open(DEVICE_ID_FILE, "r") as f:
-        device_id = json.load(f).get("device_id")
-else:
-    device_id = str(uuid.uuid4())
-    with open(DEVICE_ID_FILE, "w") as f:
-        json.dump({"device_id": device_id}, f)
+# --- Files ---
+ACCOUNTS_FILE = "accounts.json"
+CHATS_FILE = "all_chats.json"
 
-# --- Device-specific folder ---
-DEVICE_FOLDER = f"device_{device_id}"
-os.makedirs(DEVICE_FOLDER, exist_ok=True)
-
-# --- File paths per device ---
-ACCOUNTS_FILE = os.path.join(DEVICE_FOLDER, "accounts.json")
-CHATS_FILE = os.path.join(DEVICE_FOLDER, "all_chats.json")
-LAST_USER_FILE = os.path.join(DEVICE_FOLDER, "last_user.json")
-
-# --- Initialize files if not exist ---
+# --- Initialize files ---
 for file_path, default in [(ACCOUNTS_FILE, {}), (CHATS_FILE, {})]:
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
             json.dump(default, f)
 
-# --- Load accounts and chats ---
+# --- Load data ---
 with open(ACCOUNTS_FILE, "r") as f:
     accounts = json.load(f)
 with open(CHATS_FILE, "r") as f:
@@ -47,21 +32,13 @@ def save_accounts():
     with open(ACCOUNTS_FILE, "w") as f:
         json.dump(accounts, f)
 
-def save_last_user(email):
-    with open(LAST_USER_FILE, "w") as f:
-        json.dump({"email": email}, f)
-
-def get_last_user():
-    if os.path.exists(LAST_USER_FILE):
-        with open(LAST_USER_FILE, "r") as f:
-            return json.load(f).get("email")
-    return None
-
 def save_chats():
     with open(CHATS_FILE, "w") as f:
         json.dump(all_chats, f)
 
 # --- Session state ---
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "current_chat_id" not in st.session_state:
@@ -81,31 +58,57 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Check last user ---
-registered_email = get_last_user()
+# --- Authentication ---
+def login_user(email, password):
+    if email in accounts and accounts[email]["password"] == hash_password(password):
+        st.session_state.user_email = email
+        if email not in all_chats:
+            all_chats[email] = {}
+        st.session_state.messages = []
+        st.session_state.current_chat_id = None
+        return True
+    return False
 
-# --- Registration / login ---
-if registered_email is None:
-    st.title("Max-AI Registration System (Device-Specific)")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Register"):
-        if not username or not password:
-            st.error("Enter both username and password!")
-        else:
-            email = f"{username}@max.com"
-            if email in accounts:
-                st.error("Username already taken!")
+def register_user(username, password):
+    email = f"{username}@max.com"
+    if email in accounts:
+        return False, "Username already exists!"
+    accounts[email] = {"username": username, "password": hash_password(password)}
+    all_chats[email] = {}
+    save_accounts()
+    save_chats()
+    return True, email
+
+# --- Login/Register interface ---
+if st.session_state.user_email is None:
+    st.title("Max-AI Login / Registration")
+
+    tab = st.radio("Choose Action:", ["Login", "Register"])
+
+    if tab == "Login":
+        email_input = st.text_input("Email")
+        password_input = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if login_user(email_input, password_input):
+                st.success(f"Logged in as {accounts[email_input]['username']}")
+                st.experimental_rerun()
             else:
-                accounts[email] = {"password": hash_password(password), "username": username}
-                save_accounts()
-                save_last_user(email)
-                st.success(f"Account created for this device! Email: {email}")
+                st.error("Invalid email or password!")
+
+    elif tab == "Register":
+        username_input = st.text_input("Username")
+        password_input = st.text_input("Password", type="password")
+        if st.button("Register"):
+            success, msg = register_user(username_input, password_input)
+            if success:
+                st.success(f"Account created! Your email: {msg}")
+            else:
+                st.error(msg)
 else:
-    st.sidebar.title("Chats")
-    if registered_email not in all_chats:
-        all_chats[registered_email] = {}
-    user_chats = all_chats[registered_email]
+    user_email = st.session_state.user_email
+    st.sidebar.title(f"Chats - {accounts[user_email]['username']}")
+
+    user_chats = all_chats[user_email]
 
     # --- New chat ---
     if st.sidebar.button("✒️ New Chat"):
@@ -157,16 +160,15 @@ else:
 
     # --- Delete account ---
     if st.sidebar.button("⚠️ Delete Account"):
-        if registered_email in accounts:
-            del accounts[registered_email]
-        if registered_email in all_chats:
-            del all_chats[registered_email]
+        del accounts[user_email]
+        del all_chats[user_email]
         save_accounts()
         save_chats()
-        if os.path.exists(LAST_USER_FILE):
-            os.remove(LAST_USER_FILE)
-        st.success("Account deleted! You can now create an account on this device.")
-        st.stop()
+        st.session_state.user_email = None
+        st.session_state.messages = []
+        st.session_state.current_chat_id = None
+        st.success("Account deleted. You can now register or login.")
+        st.experimental_rerun()
 
     # --- Main Chat UI ---
     st.html("<h1 style='font-size:60px;'>Max 🧠</h1>")
@@ -178,23 +180,23 @@ else:
     intro_placeholder = st.empty()
     if len(st.session_state.messages) == 0:
         intro_placeholder.markdown(
-            f"<div style='display: flex; justify-content: center; align-items: center; height: 65vh; font-size: 3rem; font-weight: bold; color: white; opacity: 0.5;'>Hello, {accounts[registered_email]['username']}!</div>",
+            f"<div style='display: flex; justify-content: center; align-items: center; height: 65vh; font-size: 3rem; font-weight: bold; color: white; opacity: 0.5;'>Hello, {accounts[user_email]['username']}!</div>",
             unsafe_allow_html=True
         )
 
     # --- Display messages ---
     for msg in st.session_state.messages:
         if msg["role"] == "user":
-            st.chat_message("user", avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(msg["content"])
+            st.chat_message("user").write(msg["content"])
         else:
-            st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
+            st.chat_message("assistant").write(msg["content"])
 
     # --- Chat input ---
     prompt = st.chat_input("Type here...")
     if prompt:
         intro_placeholder.empty()
         st.session_state.messages.append({"role": "user", "content": prompt})
-        st.chat_message("user", avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(prompt)
+        st.chat_message("user").write(prompt)
         if user_chats[selected_chat_id]["title"] == "New Chat" and prompt:
             user_chats[selected_chat_id]["title"] = prompt[:30]
 
@@ -211,10 +213,9 @@ else:
                 reply = f"Error: {e}"
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(reply)
-        if selected_chat_id:
-            user_chats[selected_chat_id]["messages"] = st.session_state.messages
-            save_chats()
+        st.chat_message("assistant").write(reply)
+        user_chats[selected_chat_id]["messages"] = st.session_state.messages
+        save_chats()
 
     # --- Footer ---
     st.markdown("""
