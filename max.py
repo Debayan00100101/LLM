@@ -9,8 +9,9 @@ st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
 ACCOUNTS_FILE = "accounts.json"
 CHATS_FILE = "all_chats.json"
+DEVICE_FILE = "device_account.json"
 
-for file_path, default in [(ACCOUNTS_FILE, {}), (CHATS_FILE, {})]:
+for file_path, default in [(ACCOUNTS_FILE, {}), (CHATS_FILE, {}), (DEVICE_FILE, {})]:
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
             json.dump(default, f)
@@ -19,6 +20,8 @@ with open(ACCOUNTS_FILE, "r") as f:
     accounts = json.load(f)
 with open(CHATS_FILE, "r") as f:
     all_chats = json.load(f)
+with open(DEVICE_FILE, "r") as f:
+    device_data = json.load(f)
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -31,12 +34,19 @@ def save_chats():
     with open(CHATS_FILE, "w") as f:
         json.dump(all_chats, f)
 
+def save_device():
+    with open(DEVICE_FILE, "w") as f:
+        json.dump(device_data, f)
+
 if "user_email" not in st.session_state:
     st.session_state.user_email = None
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "current_chat_id" not in st.session_state:
     st.session_state.current_chat_id = None
+
+if device_data.get("device_email") in accounts:
+    st.session_state.user_email = device_data["device_email"]
 
 st.markdown("""
 <style>
@@ -58,6 +68,8 @@ def login_user(email, password):
             all_chats[email] = {}
         st.session_state.messages = []
         st.session_state.current_chat_id = None
+        device_data["device_email"] = email
+        save_device()
         return True
     return False
 
@@ -69,6 +81,11 @@ def register_user(username, password):
     all_chats[email] = {}
     save_accounts()
     save_chats()
+    st.session_state.user_email = email
+    st.session_state.messages = []
+    st.session_state.current_chat_id = None
+    device_data["device_email"] = email
+    save_device()
     return True, email
 
 if st.session_state.user_email is None:
@@ -91,9 +108,6 @@ if st.session_state.user_email is None:
         if st.button("Register"):
             success, msg = register_user(username_input, password_input)
             if success:
-                st.session_state.user_email = msg
-                st.session_state.messages = []
-                st.session_state.current_chat_id = None
                 st.success(f"Account created and logged in! Welcome, {username_input}")
             else:
                 st.error(msg)
@@ -153,6 +167,9 @@ else:
         del all_chats[user_email]
         save_accounts()
         save_chats()
+        if "device_email" in device_data: 
+            del device_data["device_email"]
+            save_device()
         st.session_state.user_email = None
         st.session_state.messages = []
         st.session_state.current_chat_id = None
