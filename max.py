@@ -4,25 +4,25 @@ import json
 import os
 import hashlib
 import uuid
-import platform
 
+# --- Streamlit Page Config ---
 st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
-# Use a unique device folder based on machine identifier
-DEVICE_ID = platform.node()  # Unique per machine
-DEVICE_FOLDER = f"device_data_{DEVICE_ID}"
+# --- Device-specific folder in home directory ---
+DEVICE_FOLDER = os.path.join(os.path.expanduser("~"), ".max_ai_data")
 os.makedirs(DEVICE_FOLDER, exist_ok=True)
 
 ACCOUNTS_FILE = os.path.join(DEVICE_FOLDER, "accounts.json")
 CHATS_FILE = os.path.join(DEVICE_FOLDER, "chats.json")
 CURRENT_USER_FILE = os.path.join(DEVICE_FOLDER, "current_user.json")
 
+# --- Initialize files if they don't exist ---
 for file_path, default in [(ACCOUNTS_FILE, {}), (CHATS_FILE, {}), (CURRENT_USER_FILE, {})]:
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
             json.dump(default, f)
 
-# Load files
+# --- Load data ---
 with open(ACCOUNTS_FILE, "r") as f:
     accounts = json.load(f)
 with open(CHATS_FILE, "r") as f:
@@ -30,9 +30,11 @@ with open(CHATS_FILE, "r") as f:
 with open(CURRENT_USER_FILE, "r") as f:
     current_user_data = json.load(f)
 
+# --- Hashing ---
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+# --- Save functions ---
 def save_accounts():
     with open(ACCOUNTS_FILE, "w") as f:
         json.dump(accounts, f)
@@ -45,7 +47,7 @@ def save_current_user():
     with open(CURRENT_USER_FILE, "w") as f:
         json.dump(current_user_data, f)
 
-# Session state
+# --- Session state ---
 stored_email = current_user_data.get("user_email")
 if stored_email and stored_email in accounts:
     st.session_state.user_email = stored_email
@@ -60,7 +62,7 @@ if "messages" not in st.session_state:
 if "current_chat_id" not in st.session_state:
     st.session_state.current_chat_id = None
 
-# Sidebar styling
+# --- Sidebar styling ---
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {background-color: #141a22 !important; color: #f9fafb;}
@@ -74,7 +76,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Authentication
+# --- Authentication ---
 def login_user(email, password):
     if email in accounts and accounts[email]["password"] == hash_password(password):
         st.session_state.user_email = email
@@ -102,7 +104,7 @@ def register_user(username, password):
     save_current_user()
     return True, email
 
-# Login/Register interface
+# --- Login/Register interface ---
 if st.session_state.user_email is None:
     st.title("Max-AI Login / Registration")
     tab = st.radio("Choose Action:", ["Login", "Register"])
@@ -126,7 +128,7 @@ if st.session_state.user_email is None:
             else:
                 st.error(msg)
 
-# Main Chat
+# --- Main Chat page ---
 else:
     user_email = st.session_state.user_email
     st.sidebar.title(f"Chats - {accounts[user_email]['username']}")
