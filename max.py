@@ -58,7 +58,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Authentication ---
+# --- Authentication functions ---
 def login_user(email, password):
     if email in accounts and accounts[email]["password"] == hash_password(password):
         st.session_state.user_email = email
@@ -101,9 +101,16 @@ if st.session_state.user_email is None:
         if st.button("Register"):
             success, msg = register_user(username_input, password_input)
             if success:
-                st.success(f"Account created! Your email: {msg}")
+                # Automatically log in after registration
+                st.session_state.user_email = msg
+                st.session_state.messages = []
+                st.session_state.current_chat_id = None
+                st.success(f"Account created and logged in! Welcome, {username_input}")
+                st.experimental_rerun()
             else:
                 st.error(msg)
+
+# --- Main Chat Page ---
 else:
     user_email = st.session_state.user_email
     st.sidebar.title(f"Chats - {accounts[user_email]['username']}")
