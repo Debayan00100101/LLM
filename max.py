@@ -7,8 +7,8 @@ import uuid
 
 st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
-# Device-specific folder in a writable location
-DEVICE_FOLDER = "/mnt/data/device_data"
+# Use a local folder inside the app directory
+DEVICE_FOLDER = "device_data"
 os.makedirs(DEVICE_FOLDER, exist_ok=True)
 
 ACCOUNTS_FILE = os.path.join(DEVICE_FOLDER, "accounts.json")
