@@ -175,7 +175,7 @@ else:
         st.session_state.messages = []
         st.session_state.current_chat_id = None
         st.success("Account deleted. You can now register or login.")
-        st.experimental_rerun()
+        
 
     # --- Main Chat UI ---
     st.html("<h1 style='font-size:60px;'>Max 🧠</h1>")
@@ -232,4 +232,5 @@ else:
     </style>
     <div class="footer">Max can make mistakes. Please verify important information. See <a href="#">Cookie Preferences</a>.</div>
     """, unsafe_allow_html=True)
+
 
