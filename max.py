@@ -7,35 +7,36 @@ import uuid
 
 st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
-# --- Files ---
-ACCOUNTS_FILE = "accounts.json"
-CHATS_FILE = "all_chats.json"
-DEVICE_FILE = "device_id.json"
-LAST_USER_FILE = "last_user.json"
+# --- Generate/Get unique device ID ---
+DEVICE_ID_FILE = "device_id.json"
+if os.path.exists(DEVICE_ID_FILE):
+    with open(DEVICE_ID_FILE, "r") as f:
+        device_id = json.load(f).get("device_id")
+else:
+    device_id = str(uuid.uuid4())
+    with open(DEVICE_ID_FILE, "w") as f:
+        json.dump({"device_id": device_id}, f)
 
-# --- Initialize files ---
+# --- Device-specific folder ---
+DEVICE_FOLDER = f"device_{device_id}"
+os.makedirs(DEVICE_FOLDER, exist_ok=True)
+
+# --- File paths per device ---
+ACCOUNTS_FILE = os.path.join(DEVICE_FOLDER, "accounts.json")
+CHATS_FILE = os.path.join(DEVICE_FOLDER, "all_chats.json")
+LAST_USER_FILE = os.path.join(DEVICE_FOLDER, "last_user.json")
+
+# --- Initialize files if not exist ---
 for file_path, default in [(ACCOUNTS_FILE, {}), (CHATS_FILE, {})]:
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
             json.dump(default, f)
 
+# --- Load accounts and chats ---
 with open(ACCOUNTS_FILE, "r") as f:
     accounts = json.load(f)
 with open(CHATS_FILE, "r") as f:
     all_chats = json.load(f)
-
-# --- Generate/Get unique device ID ---
-def get_device_id():
-    if os.path.exists(DEVICE_FILE):
-        with open(DEVICE_FILE, "r") as f:
-            return json.load(f).get("device_id")
-    else:
-        device_id = str(uuid.uuid4())
-        with open(DEVICE_FILE, "w") as f:
-            json.dump({"device_id": device_id}, f)
-        return device_id
-
-device_id = get_device_id()
 
 # --- Password hashing ---
 def hash_password(password):
@@ -48,14 +49,12 @@ def save_accounts():
 
 def save_last_user(email):
     with open(LAST_USER_FILE, "w") as f:
-        json.dump({"email": email, "device_id": device_id}, f)
+        json.dump({"email": email}, f)
 
 def get_last_user():
     if os.path.exists(LAST_USER_FILE):
         with open(LAST_USER_FILE, "r") as f:
-            data = json.load(f)
-            if data.get("device_id") == device_id:
-                return data.get("email")
+            return json.load(f).get("email")
     return None
 
 def save_chats():
@@ -82,7 +81,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Check last user for this device ---
+# --- Check last user ---
 registered_email = get_last_user()
 
 # --- Registration / login ---
@@ -98,7 +97,6 @@ if registered_email is None:
             if email in accounts:
                 st.error("Username already taken!")
             else:
-                # Create account for this device
                 accounts[email] = {"password": hash_password(password), "username": username}
                 save_accounts()
                 save_last_user(email)
@@ -173,7 +171,7 @@ else:
     # --- Main Chat UI ---
     st.html("<h1 style='font-size:60px;'>Max 🧠</h1>")
 
-    # Configure AI
+    # --- Configure AI ---
     genai.configure(api_key="YOUR_API_KEY_HERE")
     text_model = genai.GenerativeModel("gemini-2.0-flash")
 
