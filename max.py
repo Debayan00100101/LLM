@@ -8,9 +8,9 @@ import uuid
 st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
 ACCOUNTS_FILE = "accounts.json"
-LAST_USER_FILE = "last_user.json"
 CHATS_FILE = "all_chats.json"
 
+# --- Initialize files ---
 if not os.path.exists(ACCOUNTS_FILE):
     with open(ACCOUNTS_FILE, "w") as f:
         json.dump({}, f)
@@ -23,6 +23,7 @@ with open(ACCOUNTS_FILE, "r") as f:
 with open(CHATS_FILE, "r") as f:
     all_chats = json.load(f)
 
+# --- Helpers ---
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -30,26 +31,24 @@ def save_accounts():
     with open(ACCOUNTS_FILE, "w") as f:
         json.dump(accounts, f)
 
-def save_last_user(email):
-    with open(LAST_USER_FILE, "w") as f:
-        json.dump({"email": email}, f)
-
-def get_last_user():
-    if os.path.exists(LAST_USER_FILE):
-        with open(LAST_USER_FILE, "r") as f:
-            data = json.load(f)
-            return data.get("email", None)
-    return None
-
 def save_chats():
     with open(CHATS_FILE, "w") as f:
         json.dump(all_chats, f)
 
+# --- Use session_state instead of file for logged in user ---
+def save_last_user(email):
+    st.session_state["last_user"] = email
+
+def get_last_user():
+    return st.session_state.get("last_user", None)
+
+# --- Session init ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "current_chat_id" not in st.session_state:
     st.session_state.current_chat_id = None
 
+# --- Sidebar styling ---
 st.markdown(
     """
     <style>
@@ -66,10 +65,11 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# --- Account System ---
 registered_email = get_last_user()
 
 if registered_email is None:
-    st.title("Max-AI Registration System (One-Time)")
+    st.title("Max-AI Registration System (Per-Device)")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Register"):
@@ -78,7 +78,11 @@ if registered_email is None:
         else:
             email = f"{username}@max.com"
             if email in accounts:
-                st.error("Username already taken!")
+                if accounts[email]["password"] == hash_password(password):
+                    st.success("Login successful!")
+                    save_last_user(email)
+                else:
+                    st.error("Wrong password for this username!")
             else:
                 accounts[email] = {"password": hash_password(password), "username": username}
                 save_accounts()
@@ -135,7 +139,6 @@ else:
                 st.session_state.current_chat_id = new_chat_id
                 st.session_state.messages = []
             
-
     if st.sidebar.button("⚠️ Delete Account"):
         if registered_email in accounts:
             del accounts[registered_email]
@@ -143,8 +146,8 @@ else:
             del all_chats[registered_email]
         save_accounts()
         save_chats()
-        if os.path.exists(LAST_USER_FILE):
-            os.remove(LAST_USER_FILE)
+        if "last_user" in st.session_state:
+            del st.session_state["last_user"]
         st.success("Account deleted! You can now create an account with the same username.")
         st.stop()
 
@@ -202,4 +205,3 @@ else:
         """,
         unsafe_allow_html=True
     )
-
