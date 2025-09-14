@@ -58,7 +58,25 @@ if USER_ID not in all_chats:
 
 user_chats = all_chats[USER_ID]
 
-st.sidebar.title("Chats")
+# Ensure at least one chat exists
+if not user_chats:
+    new_chat_id = str(uuid.uuid4())
+    user_chats[new_chat_id] = {"title": "New Chat", "messages": []}
+
+# Fix current chat id
+if st.session_state.current_chat_id not in user_chats:
+    st.session_state.current_chat_id = list(user_chats.keys())[0]
+
+selected_chat_id = st.sidebar.selectbox(
+    "Select a chat:",
+    options=list(user_chats.keys()),
+    index=list(user_chats.keys()).index(st.session_state.current_chat_id),
+    format_func=lambda cid: user_chats[cid]["title"]
+)
+st.session_state.current_chat_id = selected_chat_id
+
+# Safely assign messages
+st.session_state.messages = user_chats.get(selected_chat_id, {"messages": []})["messages"]
 
 # New chat
 if st.sidebar.button("✒️ New Chat"):
@@ -66,23 +84,6 @@ if st.sidebar.button("✒️ New Chat"):
     user_chats[new_chat_id] = {"title": "New Chat", "messages": []}
     st.session_state.current_chat_id = new_chat_id
     st.session_state.messages = []
-
-chat_ids = list(user_chats.keys())
-if not chat_ids:
-    new_chat_id = str(uuid.uuid4())
-    user_chats[new_chat_id] = {"title": "New Chat", "messages": []}
-    chat_ids = list(user_chats.keys())
-
-if st.session_state.current_chat_id not in chat_ids:
-    st.session_state.current_chat_id = chat_ids[0]
-
-selected_chat_id = st.sidebar.selectbox(
-    "Select a chat:", chat_ids,
-    index=chat_ids.index(st.session_state.current_chat_id),
-    format_func=lambda cid: user_chats[cid]["title"]
-)
-st.session_state.current_chat_id = selected_chat_id
-st.session_state.messages = user_chats[selected_chat_id]["messages"]
 
 # Edit chat title
 new_title = st.sidebar.text_input("Edit Chat Title:", value=user_chats[selected_chat_id]["title"])
@@ -109,7 +110,7 @@ def save_chats():
 
 st.html("<center><h1 style='font-size:60px;'>Max 🧠</h1></center>")
 
-genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
+genai.configure(api_key="YOUR_API_KEY_HERE")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
 
 intro_placeholder = st.empty()
