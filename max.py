@@ -14,44 +14,18 @@ os.makedirs(DEVICE_FOLDER, exist_ok=True)
 
 CHATS_FILE = os.path.join(DEVICE_FOLDER, "chats.json")
 
-# Initialize chats file if missing
 if not os.path.exists(CHATS_FILE):
     with open(CHATS_FILE, "w") as f:
         json.dump({}, f)
 
-# -------------------------
-# Load chats
-# -------------------------
 with open(CHATS_FILE, "r") as f:
     all_chats = json.load(f)
 
-# -------------------------
-# Session state
-# -------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "current_chat_id" not in st.session_state:
     st.session_state.current_chat_id = None
 
-# -------------------------
-# Sidebar styling
-# -------------------------
-st.markdown("""
-<style>
-[data-testid="stSidebar"] {background-color: #141a22 !important; color: #f9fafb;}
-[data-testid="stSidebar"] input, [data-testid="stSidebar"] textarea, [data-testid="stSidebar"] .stSelectbox select, [data-testid="stSidebar"] button {
-    background-color: #141a22 !important; color: #f9fafb; border: 1px solid #374151;
-}
-[data-testid="stSidebar"] button:hover {background-color: #1e2530 !important;}
-[data-testid="stSidebar"] .stTextInput>div>input, [data-testid="stSidebar"] .stTextArea>div>textarea {
-    background-color: #141a22 !important; color: #f9fafb;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# -------------------------
-# Main Chat UI
-# -------------------------
 USER_ID = "default_user"
 if USER_ID not in all_chats:
     all_chats[USER_ID] = {}
@@ -63,34 +37,35 @@ if not user_chats:
     new_chat_id = str(uuid.uuid4())
     user_chats[new_chat_id] = {"title": "New Chat", "messages": []}
 
-# Fix current chat id
+# Ensure current_chat_id is valid
 if st.session_state.current_chat_id not in user_chats:
     st.session_state.current_chat_id = list(user_chats.keys())[0]
 
+# Safe access to selected chat
 selected_chat_id = st.sidebar.selectbox(
     "Select a chat:",
     options=list(user_chats.keys()),
     index=list(user_chats.keys()).index(st.session_state.current_chat_id),
-    format_func=lambda cid: user_chats[cid]["title"]
+    format_func=lambda cid: user_chats[cid].get("title", "New Chat")
 )
 st.session_state.current_chat_id = selected_chat_id
+current_chat = user_chats.get(selected_chat_id, {"title": "New Chat", "messages": []})
+st.session_state.messages = current_chat.get("messages", [])
 
-# Safely assign messages
-st.session_state.messages = user_chats.get(selected_chat_id, {"messages": []})["messages"]
-
-# New chat
+# Sidebar buttons
 if st.sidebar.button("✒️ New Chat"):
     new_chat_id = str(uuid.uuid4())
     user_chats[new_chat_id] = {"title": "New Chat", "messages": []}
     st.session_state.current_chat_id = new_chat_id
     st.session_state.messages = []
 
-# Edit chat title
-new_title = st.sidebar.text_input("Edit Chat Title:", value=user_chats[selected_chat_id]["title"])
-if new_title != user_chats[selected_chat_id]["title"]:
-    user_chats[selected_chat_id]["title"] = new_title
+# Edit chat title safely
+new_title = st.sidebar.text_input("Edit Chat Title:", value=current_chat.get("title", "New Chat"))
+if new_title != current_chat.get("title", "New Chat"):
+    current_chat["title"] = new_title
+    user_chats[selected_chat_id] = current_chat
 
-# Delete chat
+# Delete chat safely
 if st.sidebar.button("🧢 Delete Selected Chat"):
     if selected_chat_id in user_chats:
         del user_chats[selected_chat_id]
@@ -110,7 +85,7 @@ def save_chats():
 
 st.html("<center><h1 style='font-size:60px;'>Max 🧠</h1></center>")
 
-genai.configure(api_key="YOUR_API_KEY_HERE")
+genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
 text_model = genai.GenerativeModel("gemini-2.0-flash")
 
 intro_placeholder = st.empty()
@@ -131,8 +106,9 @@ if prompt:
     intro_placeholder.empty()
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
-    if user_chats[selected_chat_id]["title"] == "New Chat" and prompt:
-        user_chats[selected_chat_id]["title"] = prompt[:30]
+
+    if current_chat.get("title", "New Chat") == "New Chat" and prompt:
+        current_chat["title"] = prompt[:30]
 
     all_messages_text = ""
     for m in st.session_state.messages:
@@ -146,5 +122,6 @@ if prompt:
 
     st.session_state.messages.append({"role": "assistant", "content": reply})
     st.chat_message("assistant").write(reply)
-    user_chats[selected_chat_id]["messages"] = st.session_state.messages
+    current_chat["messages"] = st.session_state.messages
+    user_chats[selected_chat_id] = current_chat
     save_chats()
