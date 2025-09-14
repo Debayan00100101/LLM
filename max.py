@@ -4,11 +4,13 @@ import json
 import os
 import hashlib
 import uuid
+import platform
 
 st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
-# Use a local folder inside the app directory
-DEVICE_FOLDER = "device_data"
+# Use a unique device folder based on machine identifier
+DEVICE_ID = platform.node()  # Unique per machine
+DEVICE_FOLDER = f"device_data_{DEVICE_ID}"
 os.makedirs(DEVICE_FOLDER, exist_ok=True)
 
 ACCOUNTS_FILE = os.path.join(DEVICE_FOLDER, "accounts.json")
@@ -20,6 +22,7 @@ for file_path, default in [(ACCOUNTS_FILE, {}), (CHATS_FILE, {}), (CURRENT_USER_
         with open(file_path, "w") as f:
             json.dump(default, f)
 
+# Load files
 with open(ACCOUNTS_FILE, "r") as f:
     accounts = json.load(f)
 with open(CHATS_FILE, "r") as f:
@@ -42,6 +45,7 @@ def save_current_user():
     with open(CURRENT_USER_FILE, "w") as f:
         json.dump(current_user_data, f)
 
+# Session state
 if "user_email" not in st.session_state:
     st.session_state.user_email = current_user_data.get("user_email")
 if "messages" not in st.session_state:
@@ -49,6 +53,7 @@ if "messages" not in st.session_state:
 if "current_chat_id" not in st.session_state:
     st.session_state.current_chat_id = None
 
+# Sidebar styling
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {background-color: #141a22 !important; color: #f9fafb;}
@@ -62,6 +67,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Authentication
 def login_user(email, password):
     if email in accounts and accounts[email]["password"] == hash_password(password):
         st.session_state.user_email = email
@@ -89,9 +95,9 @@ def register_user(username, password):
     save_current_user()
     return True, email
 
+# Login/Register interface
 if st.session_state.user_email is None:
     st.title("Max-AI Login / Registration")
-
     tab = st.radio("Choose Action:", ["Login", "Register"])
 
     if tab == "Login":
@@ -113,10 +119,10 @@ if st.session_state.user_email is None:
             else:
                 st.error(msg)
 
+# Main Chat
 else:
     user_email = st.session_state.user_email
     st.sidebar.title(f"Chats - {accounts[user_email]['username']}")
-
     user_chats = all_chats[user_email]
 
     if st.sidebar.button("✒️ New Chat"):
@@ -178,7 +184,7 @@ else:
 
     st.html("<center><h1 style='font-size:60px;'>Max 🧠</h1></center>")
 
-    genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
+    genai.configure(api_key="YOUR_API_KEY_HERE")
     text_model = genai.GenerativeModel("gemini-2.0-flash")
 
     intro_placeholder = st.empty()
@@ -190,15 +196,15 @@ else:
 
     for msg in st.session_state.messages:
         if msg["role"] == "user":
-            st.chat_message("user",avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(msg["content"])
+            st.chat_message("user", avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(msg["content"])
         else:
-            st.chat_message("assistant",avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
+            st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
 
     prompt = st.chat_input("Type here...")
     if prompt:
         intro_placeholder.empty()
         st.session_state.messages.append({"role": "user", "content": prompt})
-        st.chat_message("user",avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(prompt)
+        st.chat_message("user", avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(prompt)
         if user_chats[selected_chat_id]["title"] == "New Chat" and prompt:
             user_chats[selected_chat_id]["title"] = prompt[:30]
 
@@ -215,7 +221,7 @@ else:
                 reply = f"Error: {e}"
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant",avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(reply)
+        st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(reply)
         user_chats[selected_chat_id]["messages"] = st.session_state.messages
         save_chats()
 
