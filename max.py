@@ -106,7 +106,7 @@ if st.session_state.user_email is None:
                 st.session_state.messages = []
                 st.session_state.current_chat_id = None
                 st.success(f"Account created and logged in! Welcome, {username_input}")
-                st.experimental_rerun()
+                
             else:
                 st.error(msg)
 
@@ -232,3 +232,4 @@ else:
     </style>
     <div class="footer">Max can make mistakes. Please verify important information. See <a href="#">Cookie Preferences</a>.</div>
     """, unsafe_allow_html=True)
+
