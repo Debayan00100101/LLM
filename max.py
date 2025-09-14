@@ -5,51 +5,72 @@ import os
 import hashlib
 import uuid
 
+# --- Streamlit Page Config ---
 st.set_page_config(page_title="Max by Debayan", page_icon="🧠", layout="wide")
 
+# --- File paths ---
 ACCOUNTS_FILE = "accounts.json"
 LAST_USER_FILE = "last_user.json"
 CHATS_FILE = "all_chats.json"
+DEVICE_FILE = "device_id.json"
 
-if not os.path.exists(ACCOUNTS_FILE):
-    with open(ACCOUNTS_FILE, "w") as f:
-        json.dump({}, f)
-if not os.path.exists(CHATS_FILE):
-    with open(CHATS_FILE, "w") as f:
-        json.dump({}, f)
+# --- Initialize files if not exist ---
+for file_path, default in [(ACCOUNTS_FILE, {}), (CHATS_FILE, {})]:
+    if not os.path.exists(file_path):
+        with open(file_path, "w") as f:
+            json.dump(default, f)
 
+# --- Load accounts and chats ---
 with open(ACCOUNTS_FILE, "r") as f:
     accounts = json.load(f)
 with open(CHATS_FILE, "r") as f:
     all_chats = json.load(f)
 
+# --- Device ID ---
+def get_device_id():
+    if os.path.exists(DEVICE_FILE):
+        with open(DEVICE_FILE, "r") as f:
+            return json.load(f).get("device_id")
+    else:
+        device_id = str(uuid.uuid4())
+        with open(DEVICE_FILE, "w") as f:
+            json.dump({"device_id": device_id}, f)
+        return device_id
+
+device_id = get_device_id()
+
+# --- Password hashing ---
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+# --- Save functions ---
 def save_accounts():
     with open(ACCOUNTS_FILE, "w") as f:
         json.dump(accounts, f)
 
 def save_last_user(email):
     with open(LAST_USER_FILE, "w") as f:
-        json.dump({"email": email}, f)
+        json.dump({"email": email, "device_id": device_id}, f)
 
 def get_last_user():
     if os.path.exists(LAST_USER_FILE):
         with open(LAST_USER_FILE, "r") as f:
             data = json.load(f)
-            return data.get("email", None)
+            if data.get("device_id") == device_id:
+                return data.get("email", None)
     return None
 
 def save_chats():
     with open(CHATS_FILE, "w") as f:
         json.dump(all_chats, f)
 
+# --- Session state ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "current_chat_id" not in st.session_state:
     st.session_state.current_chat_id = None
 
+# --- Sidebar and style ---
 st.markdown(
     """
     <style>
@@ -66,6 +87,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# --- Check last user ---
 registered_email = get_last_user()
 
 if registered_email is None:
@@ -85,11 +107,12 @@ if registered_email is None:
                 save_last_user(email)
                 st.success(f"Account created! Your email: {email}")
 else:
-    st.sidebar.title("Chats✨")
+    st.sidebar.title("Chats")
     if registered_email not in all_chats:
         all_chats[registered_email] = {}
     user_chats = all_chats[registered_email]
 
+    # --- New chat ---
     if st.sidebar.button("✒️ New Chat"):
         new_chat_id = str(uuid.uuid4())
         user_chats[new_chat_id] = {"title": "New Chat", "messages": []}
@@ -97,6 +120,7 @@ else:
         st.session_state.current_chat_id = new_chat_id
         st.session_state.messages = []
 
+    # --- Chat selection ---
     chat_ids = list(user_chats.keys())
     if not chat_ids:
         new_chat_id = str(uuid.uuid4())
@@ -115,11 +139,13 @@ else:
     st.session_state.current_chat_id = selected_chat_id
     st.session_state.messages = user_chats[selected_chat_id]["messages"]
 
+    # --- Edit chat title ---
     new_title = st.sidebar.text_input("Edit Chat Title:", value=user_chats[selected_chat_id]["title"])
     if new_title != user_chats[selected_chat_id]["title"]:
         user_chats[selected_chat_id]["title"] = new_title
         save_chats()
 
+    # --- Delete chat ---
     if st.sidebar.button("🧢 Delete Selected Chat"):
         if selected_chat_id in user_chats:
             del user_chats[selected_chat_id]
@@ -133,8 +159,8 @@ else:
                 save_chats()
                 st.session_state.current_chat_id = new_chat_id
                 st.session_state.messages = []
-            
 
+    # --- Delete account ---
     if st.sidebar.button("⚠️ Delete Account"):
         if registered_email in accounts:
             del accounts[registered_email]
@@ -147,9 +173,11 @@ else:
         st.success("Account deleted! You can now create an account with the same username.")
         st.stop()
 
+    # --- Main chat interface ---
     st.html("<h1 style='font-size:60px;'>Max 🧠</h1>")
 
-    genai.configure(api_key="AIzaSyALrcQnmp18z2h2ParAb6PXimCpN0HxX8Y")
+    # --- Configure AI ---
+    genai.configure(api_key="YOUR_API_KEY_HERE")  # <-- replace with your key
     text_model = genai.GenerativeModel("gemini-2.0-flash")
 
     intro_placeholder = st.empty()
@@ -159,12 +187,14 @@ else:
             unsafe_allow_html=True
         )
 
+    # --- Display messages ---
     for msg in st.session_state.messages:
         if msg["role"] == "user":
             st.chat_message("user", avatar="https://wallpapercave.com/wp/wp9110432.jpg").write(msg["content"])
         else:
             st.chat_message("assistant", avatar="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg").write(msg["content"])
 
+    # --- Chat input ---
     prompt = st.chat_input("Type here...")
     if prompt:
         intro_placeholder.empty()
@@ -191,6 +221,7 @@ else:
             user_chats[selected_chat_id]["messages"] = st.session_state.messages
             save_chats()
 
+    # --- Footer ---
     st.markdown(
         """
         <style>
