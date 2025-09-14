@@ -91,7 +91,7 @@ if st.session_state.user_email is None:
         if st.button("Login"):
             if login_user(email_input, password_input):
                 st.success(f"Logged in as {accounts[email_input]['username']}")
-                st.experimental_rerun()
+                st.write("Rerun to chat")
             else:
                 st.error("Invalid email or password!")
 
@@ -232,5 +232,6 @@ else:
     </style>
     <div class="footer">Max can make mistakes. Please verify important information. See <a href="#">Cookie Preferences</a>.</div>
     """, unsafe_allow_html=True)
+
 
 
